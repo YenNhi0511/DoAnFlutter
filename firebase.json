@@ -1,0 +1,4 @@
+{
+	"deprecated": true,
+	"message": "Firebase settings removed from ProjectFlow; this file is kept for historical purposes and should be ignored if you do not plan to re-enable Firebase."
+}

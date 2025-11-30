@@ -1,0 +1,121 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Sequence - Create Task" id="sequence-create-task">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Lifelines -->
+        <mxCell id="user" value="Người dùng" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="80" width="100" height="900" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ui" value="Biểu mẫu tạo nhiệm vụ" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="250" y="80" width="120" height="900" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="notifier" value="Bộ thông báo nhiệm vụ" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="420" y="80" width="120" height="900" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="repo" value="Kho dữ liệu nhiệm vụ" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="590" y="80" width="120" height="900" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="supabase" value="Supabase" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="760" y="80" width="120" height="900" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="realtime" value="Người đăng ký thời gian thực" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="930" y="80" width="120" height="900" as="geometry" />
+        </mxCell>
+        
+        <!-- Messages -->
+        <mxCell id="m1" value="1: Nhập thông tin task" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;" edge="1" parent="1" source="user" target="ui">
+          <mxGeometry y="200" relative="1" as="geometry">
+            <mxPoint x="150" y="200" as="sourcePoint" />
+            <mxPoint x="310" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m2" value="2: createTask(...)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;" edge="1" parent="1" source="ui" target="notifier">
+          <mxGeometry y="280" relative="1" as="geometry">
+            <mxPoint x="310" y="280" as="sourcePoint" />
+            <mxPoint x="480" y="280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m3" value="3: createTask(TaskModel)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;" edge="1" parent="1" source="notifier" target="repo">
+          <mxGeometry y="360" relative="1" as="geometry">
+            <mxPoint x="480" y="360" as="sourcePoint" />
+            <mxPoint x="650" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m4" value="4: INSERT INTO tasks" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;" edge="1" parent="1" source="repo" target="supabase">
+          <mxGeometry y="440" relative="1" as="geometry">
+            <mxPoint x="650" y="440" as="sourcePoint" />
+            <mxPoint x="820" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m5" value="5: Mô hình nhiệm vụ (đã tạo)" style="html=1;verticalAlign=bottom;endArrow=open;endSize=8;curved=0;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;dashed=1;" edge="1" parent="1" source="supabase" target="repo">
+          <mxGeometry y="500" relative="1" as="geometry">
+            <mxPoint x="820" y="500" as="sourcePoint" />
+            <mxPoint x="650" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m6" value="6: Phát sóng thay đổi" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;" edge="1" parent="1" source="supabase" target="realtime">
+          <mxGeometry y="560" relative="1" as="geometry">
+            <mxPoint x="820" y="560" as="sourcePoint" />
+            <mxPoint x="990" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m7" value="7: Mô hình nhiệm vụ" style="html=1;verticalAlign=bottom;endArrow=open;endSize=8;curved=0;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;dashed=1;" edge="1" parent="1" source="repo" target="notifier">
+          <mxGeometry y="620" relative="1" as="geometry">
+            <mxPoint x="650" y="620" as="sourcePoint" />
+            <mxPoint x="480" y="620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m8" value="8: Cập nhật trạng thái" style="html=1;verticalAlign=bottom;endArrow=open;endSize=8;curved=0;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;dashed=1;" edge="1" parent="1" source="notifier" target="ui">
+          <mxGeometry y="680" relative="1" as="geometry">
+            <mxPoint x="480" y="680" as="sourcePoint" />
+            <mxPoint x="310" y="680" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m9" value="9: Cập nhật thời gian thực" style="html=1;verticalAlign=bottom;endArrow=open;endSize=8;curved=0;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;dashed=1;" edge="1" parent="1" source="realtime" target="user">
+          <mxGeometry y="740" relative="1" as="geometry">
+            <mxPoint x="990" y="740" as="sourcePoint" />
+            <mxPoint x="150" y="740" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Activation boxes -->
+        <mxCell id="a1" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;width=20;fillColor=none;strokeColor=#000000;verticalAlign=top;align=left;" vertex="1" parent="ui">
+          <mxGeometry x="110" y="200" width="20" height="580" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="a2" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;width=20;fillColor=none;strokeColor=#000000;verticalAlign=top;align=left;" vertex="1" parent="notifier">
+          <mxGeometry x="110" y="280" width="20" height="420" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="a3" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;width=20;fillColor=none;strokeColor=#000000;verticalAlign=top;align=left;" vertex="1" parent="repo">
+          <mxGeometry x="110" y="360" width="20" height="280" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="a4" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;width=20;fillColor=none;strokeColor=#000000;verticalAlign=top;align=left;" vertex="1" parent="supabase">
+          <mxGeometry x="110" y="440" width="20" height="140" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="a5" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;width=20;fillColor=none;strokeColor=#000000;verticalAlign=top;align=left;" vertex="1" parent="realtime">
+          <mxGeometry x="110" y="560" width="20" height="200" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,102 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Architecture Diagram" id="architecture-diagram">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Presentation Layer -->
+        <mxCell id="presentation" value="Presentation Layer" style="swimlane;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;startSize=40;" vertex="1" parent="1">
+          <mxGeometry x="100" y="100" width="1800" height="300" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="screens" value="Screens&#xa;─────────────&#xa;• LoginScreen&#xa;• RegisterScreen&#xa;• HomeScreen&#xa;• ProjectScreen&#xa;• BoardScreen&#xa;• TaskDetailScreen" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;spacingLeft=10;" vertex="1" parent="presentation">
+          <mxGeometry x="50" y="60" width="200" height="200" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="widgets" value="Widgets&#xa;─────────────&#xa;• AppButton&#xa;• AppTextField&#xa;• UserAvatar&#xa;• ProjectCard&#xa;• TaskCard&#xa;• KanbanColumn" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=10;" vertex="1" parent="presentation">
+          <mxGeometry x="300" y="60" width="200" height="200" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="router" value="Router&#xa;─────────────&#xa;• GoRouter&#xa;• Route Guards&#xa;• Navigation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;spacingLeft=10;" vertex="1" parent="presentation">
+          <mxGeometry x="550" y="60" width="200" height="200" as="geometry" />
+        </mxCell>
+        
+        <!-- Domain Layer -->
+        <mxCell id="domain" value="Domain Layer (Providers)" style="swimlane;html=1;fillColor=#fff2cc;strokeColor=#d6b656;startSize=40;" vertex="1" parent="1">
+          <mxGeometry x="100" y="450" width="1800" height="300" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="providers" value="Riverpod Providers&#xa;─────────────&#xa;• AuthNotifier&#xa;• ProjectNotifier&#xa;• BoardNotifier&#xa;• TaskNotifier&#xa;• CommentNotifier&#xa;• ThemeNotifier" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;spacingLeft=10;" vertex="1" parent="domain">
+          <mxGeometry x="50" y="60" width="200" height="200" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="state" value="State Management&#xa;─────────────&#xa;• AsyncValue&lt;T&gt;&#xa;• StateNotifier&#xa;• StreamProvider&#xa;• FutureProvider" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;spacingLeft=10;" vertex="1" parent="domain">
+          <mxGeometry x="300" y="60" width="200" height="200" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Layer -->
+        <mxCell id="data" value="Data Layer" style="swimlane;html=1;fillColor=#d5e8d4;strokeColor=#82b366;startSize=40;" vertex="1" parent="1">
+          <mxGeometry x="100" y="800" width="1800" height="300" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="models" value="Models&#xa;─────────────&#xa;• UserModel&#xa;• ProjectModel&#xa;• BoardModel&#xa;• TaskModel&#xa;• CommentModel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;spacingLeft=10;" vertex="1" parent="data">
+          <mxGeometry x="50" y="60" width="200" height="200" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="repositories" value="Repositories&#xa;─────────────&#xa;• AuthRepository&#xa;• ProjectRepository&#xa;• BoardRepository&#xa;• TaskRepository" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;spacingLeft=10;" vertex="1" parent="data">
+          <mxGeometry x="300" y="60" width="200" height="200" as="geometry" />
+        </mxCell>
+        
+        <!-- External Services -->
+        <mxCell id="external" value="External Services" style="swimlane;html=1;fillColor=#f8cecc;strokeColor=#b85450;startSize=40;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1150" width="1800" height="200" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="firebase" value="Firebase Auth&#xa;─────────────&#xa;• Authentication&#xa;• User Management" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;spacingLeft=10;" vertex="1" parent="external">
+          <mxGeometry x="50" y="60" width="200" height="120" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="supabase" value="Supabase&#xa;─────────────&#xa;• PostgreSQL Database&#xa;• Realtime Subscriptions&#xa;• Row Level Security" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;spacingLeft=10;" vertex="1" parent="external">
+          <mxGeometry x="300" y="60" width="200" height="120" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="hive" value="Hive (Local)&#xa;─────────────&#xa;• Offline Cache&#xa;• Settings Storage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=10;" vertex="1" parent="external">
+          <mxGeometry x="550" y="60" width="200" height="120" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="notifications" value="Notifications&#xa;─────────────&#xa;• Local Notifications&#xa;• Push Notifications" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;spacingLeft=10;" vertex="1" parent="external">
+          <mxGeometry x="800" y="60" width="200" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- Core Services -->
+        <mxCell id="core" value="Core Services" style="swimlane;html=1;fillColor=#f5f5f5;strokeColor=#666666;startSize=40;" vertex="1" parent="1">
+          <mxGeometry x="600" y="60" width="600" height="300" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="services" value="Services&#xa;─────────────&#xa;• SupabaseService&#xa;• LocalStorageService&#xa;• NotificationService&#xa;• ConnectivityService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;spacingLeft=10;" vertex="1" parent="core">
+          <mxGeometry x="50" y="60" width="200" height="200" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="utils" value="Utils&#xa;─────────────&#xa;• Extensions&#xa;• Validators&#xa;• Constants" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=10;" vertex="1" parent="core">
+          <mxGeometry x="300" y="60" width="200" height="200" as="geometry" />
+        </mxCell>
+        
+        <!-- Arrows -->
+        <mxCell id="arrow1" value="" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="presentation" target="domain">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow2" value="" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="domain" target="data">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow3" value="" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="data" target="external">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+

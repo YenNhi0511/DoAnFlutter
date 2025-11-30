@@ -1,0 +1,4 @@
+{
+  "deprecated": true,
+  "message": "google-services.json removed from ProjectFlow. Firebase configuration is no longer in use."
+}

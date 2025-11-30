@@ -1,0 +1,131 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Component Diagram" id="component-diagram">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Flutter App -->
+        <mxCell id="app" value="ProjectFlow App&#xa;(Flutter)" style="swimlane;html=1;fillColor=none;strokeColor=#000000;startSize=40;" vertex="1" parent="1">
+          <mxGeometry x="100" y="100" width="1800" height="1000" as="geometry" />
+        </mxCell>
+        
+        <!-- UI Components -->
+        <mxCell id="ui" value="UI Components" style="swimlane;html=1;fillColor=none;strokeColor=#000000;startSize=30;" vertex="1" parent="app">
+          <mxGeometry x="50" y="60" width="400" height="300" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="screens" value="Screens" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="ui">
+          <mxGeometry x="20" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="widgets" value="Widgets" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="ui">
+          <mxGeometry x="200" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="theme" value="Theme" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="ui">
+          <mxGeometry x="20" y="150" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="router" value="Router" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="ui">
+          <mxGeometry x="200" y="150" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Business Logic -->
+        <mxCell id="logic" value="Business Logic" style="swimlane;html=1;fillColor=none;strokeColor=#000000;startSize=30;" vertex="1" parent="app">
+          <mxGeometry x="500" y="60" width="400" height="300" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="providers" value="Riverpod Providers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="logic">
+          <mxGeometry x="20" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="notifiers" value="State Notifiers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="logic">
+          <mxGeometry x="200" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="validators" value="Validators" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="logic">
+          <mxGeometry x="20" y="150" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="extensions" value="Extensions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="logic">
+          <mxGeometry x="200" y="150" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Layer -->
+        <mxCell id="data" value="Data Layer" style="swimlane;html=1;fillColor=none;strokeColor=#000000;startSize=30;" vertex="1" parent="app">
+          <mxGeometry x="950" y="60" width="400" height="300" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="models" value="Models" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="data">
+          <mxGeometry x="20" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="repositories" value="Repositories" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="data">
+          <mxGeometry x="200" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="errors" value="Error Handling" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="data">
+          <mxGeometry x="20" y="150" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Services -->
+        <mxCell id="services" value="Services" style="swimlane;html=1;fillColor=none;strokeColor=#000000;startSize=30;" vertex="1" parent="app">
+          <mxGeometry x="1400" y="60" width="350" height="300" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="supabaseService" value="SupabaseService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="services">
+          <mxGeometry x="20" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="storageService" value="LocalStorageService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="services">
+          <mxGeometry x="20" y="150" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="notifService" value="NotificationService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="services">
+          <mxGeometry x="200" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- External -->
+        <mxCell id="external" value="External Services" style="swimlane;html=1;fillColor=none;strokeColor=#000000;startSize=30;" vertex="1" parent="app">
+          <mxGeometry x="50" y="400" width="1700" height="200" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="firebase" value="Firebase Auth" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="external">
+          <mxGeometry x="50" y="50" width="200" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="supabase" value="Supabase&#xa;(PostgreSQL + Realtime)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="external">
+          <mxGeometry x="300" y="50" width="200" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="hive" value="Hive&#xa;(Local Storage)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="external">
+          <mxGeometry x="550" y="50" width="200" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="notifications" value="Local Notifications" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="external">
+          <mxGeometry x="800" y="50" width="200" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Connections -->
+        <mxCell id="c1" value="uses" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;strokeColor=#000000;" edge="1" parent="app" source="ui" target="logic">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="c2" value="uses" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;strokeColor=#000000;" edge="1" parent="app" source="logic" target="data">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="c3" value="uses" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;strokeColor=#000000;" edge="1" parent="app" source="data" target="services">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="c4" value="connects to" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" edge="1" parent="app" source="services" target="external">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+

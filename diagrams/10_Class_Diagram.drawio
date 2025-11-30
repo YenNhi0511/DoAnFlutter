@@ -1,0 +1,105 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Class Diagram" id="class-diagram">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Models -->
+        <mxCell id="userModel" value="UserModel&#xa;─────────────&#xa;+ id: String&#xa;+ email: String&#xa;+ name: String&#xa;+ avatarUrl: String?&#xa;+ createdAt: DateTime&#xa;─────────────&#xa;+ fromJson()&#xa;+ toJson()&#xa;+ copyWith()" style="swimlane;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="100" width="200" height="180" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="projectModel" value="ProjectModel&#xa;─────────────&#xa;+ id: String&#xa;+ name: String&#xa;+ description: String?&#xa;+ ownerId: String&#xa;+ colorHex: String&#xa;+ isArchived: bool&#xa;+ createdAt: DateTime&#xa;+ updatedAt: DateTime&#xa;─────────────&#xa;+ fromJson()&#xa;+ toJson()&#xa;+ copyWith()" style="swimlane;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="400" y="100" width="200" height="220" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="boardModel" value="BoardModel&#xa;─────────────&#xa;+ id: String&#xa;+ projectId: String&#xa;+ name: String&#xa;+ position: int&#xa;+ createdAt: DateTime&#xa;─────────────&#xa;+ fromJson()&#xa;+ toJson()&#xa;+ copyWith()" style="swimlane;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="700" y="100" width="200" height="180" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="columnModel" value="BoardColumnModel&#xa;─────────────&#xa;+ id: String&#xa;+ boardId: String&#xa;+ name: String&#xa;+ position: int&#xa;+ colorHex: String&#xa;+ createdAt: DateTime&#xa;─────────────&#xa;+ fromJson()&#xa;+ toJson()&#xa;+ copyWith()" style="swimlane;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="100" width="200" height="200" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="taskModel" value="TaskModel&#xa;─────────────&#xa;+ id: String&#xa;+ columnId: String&#xa;+ boardId: String&#xa;+ projectId: String&#xa;+ title: String&#xa;+ description: String?&#xa;+ position: int&#xa;+ priority: TaskPriority&#xa;+ dueDate: DateTime?&#xa;+ assigneeId: String?&#xa;+ isCompleted: bool&#xa;+ createdAt: DateTime&#xa;─────────────&#xa;+ fromJson()&#xa;+ toJson()&#xa;+ copyWith()" style="swimlane;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="100" width="200" height="280" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="commentModel" value="CommentModel&#xa;─────────────&#xa;+ id: String&#xa;+ taskId: String&#xa;+ userId: String&#xa;+ content: String&#xa;+ createdAt: DateTime&#xa;─────────────&#xa;+ fromJson()&#xa;+ toJson()&#xa;+ copyWith()" style="swimlane;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="400" width="200" height="180" as="geometry" />
+        </mxCell>
+        
+        <!-- Repositories -->
+        <mxCell id="projectRepo" value="ProjectRepository&#xa;─────────────&#xa;+ getProjects()&#xa;+ createProject()&#xa;+ updateProject()&#xa;+ deleteProject()&#xa;+ watchProjects()" style="swimlane;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="400" y="500" width="200" height="160" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="taskRepo" value="TaskRepository&#xa;─────────────&#xa;+ getTasks()&#xa;+ createTask()&#xa;+ updateTask()&#xa;+ deleteTask()&#xa;+ moveTask()&#xa;+ watchTasks()&#xa;+ addComment()" style="swimlane;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="500" width="200" height="200" as="geometry" />
+        </mxCell>
+        
+        <!-- Providers -->
+        <mxCell id="projectNotifier" value="ProjectNotifier&#xa;─────────────&#xa;- repository: ProjectRepository&#xa;─────────────&#xa;+ loadProjects()&#xa;+ createProject()&#xa;+ updateProject()&#xa;+ deleteProject()" style="swimlane;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="400" y="800" width="200" height="180" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="taskNotifier" value="TaskNotifier&#xa;─────────────&#xa;- repository: TaskRepository&#xa;─────────────&#xa;+ loadTasks()&#xa;+ createTask()&#xa;+ updateTask()&#xa;+ deleteTask()&#xa;+ moveTask()" style="swimlane;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="800" width="200" height="180" as="geometry" />
+        </mxCell>
+        
+        <!-- Relationships - Models -->
+        <mxCell id="r1" value="1" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" edge="1" parent="1" source="projectModel" target="boardModel">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r2" value="1" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" edge="1" parent="1" source="boardModel" target="columnModel">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r3" value="*" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" edge="1" parent="1" source="columnModel" target="taskModel">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r4" value="*" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" edge="1" parent="1" source="taskModel" target="commentModel">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r5" value="1" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" edge="1" parent="1" source="userModel" target="projectModel">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r6" value="?" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" edge="1" parent="1" source="userModel" target="taskModel">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r7" value="1" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" edge="1" parent="1" source="userModel" target="commentModel">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Relationships - Repository to Model -->
+        <mxCell id="r8" value="uses" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;strokeColor=#000000;" edge="1" parent="1" source="projectRepo" target="projectModel">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r9" value="uses" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;strokeColor=#000000;" edge="1" parent="1" source="taskRepo" target="taskModel">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r10" value="uses" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;strokeColor=#000000;" edge="1" parent="1" source="taskRepo" target="commentModel">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Relationships - Notifier to Repository -->
+        <mxCell id="r11" value="uses" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;strokeColor=#000000;" edge="1" parent="1" source="projectNotifier" target="projectRepo">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r12" value="uses" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;strokeColor=#000000;" edge="1" parent="1" source="taskNotifier" target="taskRepo">
+          <mxGeometry width="80" height="80" relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

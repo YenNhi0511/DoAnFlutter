@@ -1,0 +1,106 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Sequence - Login" id="sequence-login">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Lifelines -->
+        <mxCell id="user" value="Người dùng" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="80" width="100" height="800" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ui" value="Màn hình đăng nhập" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="250" y="80" width="120" height="800" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="auth" value="Bộ thông báo xác thực" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="420" y="80" width="120" height="800" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="repo" value="Kho dữ liệu xác thực" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="590" y="80" width="120" height="800" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="firebase" value="Xác thực Firebase" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="760" y="80" width="120" height="800" as="geometry" />
+        </mxCell>
+        
+        <!-- Messages -->
+        <mxCell id="m1" value="1: Nhập email/password" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;" edge="1" parent="1" source="user" target="ui">
+          <mxGeometry y="200" relative="1" as="geometry">
+            <mxPoint x="150" y="200" as="sourcePoint" />
+            <mxPoint x="310" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m2" value="2: signIn(email, password)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;" edge="1" parent="1" source="ui" target="auth">
+          <mxGeometry y="280" relative="1" as="geometry">
+            <mxPoint x="310" y="280" as="sourcePoint" />
+            <mxPoint x="480" y="280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m3" value="3: signIn(email, password)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;" edge="1" parent="1" source="auth" target="repo">
+          <mxGeometry y="360" relative="1" as="geometry">
+            <mxPoint x="480" y="360" as="sourcePoint" />
+            <mxPoint x="650" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m4" value="4: signInWithEmailAndPassword()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;" edge="1" parent="1" source="repo" target="firebase">
+          <mxGeometry y="440" relative="1" as="geometry">
+            <mxPoint x="650" y="440" as="sourcePoint" />
+            <mxPoint x="820" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m5" value="5: Thông tin xác thực người dùng (FirebaseUser)" style="html=1;verticalAlign=bottom;endArrow=open;endSize=8;curved=0;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;dashed=1;" edge="1" parent="1" source="firebase" target="repo">
+          <mxGeometry y="500" relative="1" as="geometry">
+            <mxPoint x="820" y="500" as="sourcePoint" />
+            <mxPoint x="650" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m6" value="6: Mô hình người dùng (từ FirebaseUser)" style="html=1;verticalAlign=bottom;endArrow=open;endSize=8;curved=0;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;dashed=1;" edge="1" parent="1" source="repo" target="auth">
+          <mxGeometry y="560" relative="1" as="geometry">
+            <mxPoint x="650" y="560" as="sourcePoint" />
+            <mxPoint x="480" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m7" value="7: Cập nhật trạng thái" style="html=1;verticalAlign=bottom;endArrow=open;endSize=8;curved=0;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;dashed=1;" edge="1" parent="1" source="auth" target="ui">
+          <mxGeometry y="620" relative="1" as="geometry">
+            <mxPoint x="480" y="620" as="sourcePoint" />
+            <mxPoint x="310" y="620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="m8" value="8: Điều hướng đến trang chủ" style="html=1;verticalAlign=bottom;endArrow=open;endSize=8;curved=0;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#000000;dashed=1;" edge="1" parent="1" source="ui" target="user">
+          <mxGeometry y="700" relative="1" as="geometry">
+            <mxPoint x="150" y="800" as="sourcePoint" />
+            <mxPoint x="150" y="900" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Activation boxes -->
+        <mxCell id="a1" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;width=20;fillColor=none;strokeColor=#000000;verticalAlign=top;align=left;" vertex="1" parent="ui">
+          <mxGeometry x="110" y="200" width="20" height="520" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="a2" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;width=20;fillColor=none;strokeColor=#000000;verticalAlign=top;align=left;" vertex="1" parent="auth">
+          <mxGeometry x="110" y="280" width="20" height="360" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="a3" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;width=20;fillColor=none;strokeColor=#000000;verticalAlign=top;align=left;" vertex="1" parent="repo">
+          <mxGeometry x="110" y="360" width="20" height="220" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="a4" value="" style="shape=umlFrame;whiteSpace=wrap;html=1;width=20;fillColor=none;strokeColor=#000000;verticalAlign=top;align=left;" vertex="1" parent="firebase">
+          <mxGeometry x="110" y="440" width="20" height="80" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
