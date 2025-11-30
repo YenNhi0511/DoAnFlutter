@@ -10,6 +10,7 @@ abstract class AuthRepository {
   Future<Either<Failure, UserModel>> signIn(String email, String password);
   Future<Either<Failure, UserModel>> signUp(
       String email, String password, String name);
+  Future<Either<Failure, void>> resendConfirmation(String email);
   Future<Either<Failure, void>> signOut();
   Future<Either<Failure, void>> resetPassword(String email);
   Future<Either<Failure, UserModel>> getCurrentUserData();
@@ -42,13 +43,65 @@ class AuthRepositoryImpl implements AuthRepository {
           .signInWithPassword(email: email, password: password);
       final sbUser = res.user;
       if (sbUser == null) {
+        // Map known error payloads from Supabase response
+        final dynError = (res as dynamic).error;
+        final errMsg = (dynError?.message ?? '').toString();
+        final errCode = (dynError?.statusCode?.toString() ?? '');
+        final lowerErr = errMsg.toLowerCase();
+
+        if (errMsg.isNotEmpty) {
+          // detect email not confirmed case from res.error message or status code
+          if (errMsg.contains('EMAIL_NOT_CONFIRMED') ||
+              lowerErr.contains('email not confirmed') ||
+              lowerErr.contains('email is not confirmed') ||
+              (errCode == '400' && lowerErr.contains('confirm'))) {
+            return const Left(AuthFailure(
+                message: 'Email not confirmed. Please check your inbox.',
+                code: 'email-not-confirmed'));
+          }
+
+          // Pass the raw error message
+          return Left(AuthFailure(message: errMsg));
+        }
+
         return const Left(AuthFailure(message: 'Sign in failed'));
       }
 
       final userData = await _getOrCreateSupabaseUserFromUser(sbUser);
       return Right(userData);
-    } catch (e) {
-      return Left(AuthFailure(message: e.toString()));
+    } catch (e, st) {
+      final msg = e.toString();
+      // Print some helpful debug details for developers while keeping secrets out
+      // Avoid printing the entire anon key; print base URL and error details.
+      // Show supabase debug info (if available) without printing the full keys
+      // ignore: avoid_print
+      print(
+          'Supabase debug -> url: ${SupabaseService.baseUrl}, anonPreview: ${SupabaseService.anonKeyPreview}');
+      // Print error type and stack (for dev only); it helps diagnose 401/invalid keys
+      // ignore: avoid_print
+      print('SignIn error: ${e.runtimeType}: $msg');
+      // ignore: avoid_print
+      print(st);
+      if (msg.contains('401') ||
+          msg.toLowerCase().contains('invalid api key')) {
+        return const Left(AuthFailure(
+            message:
+                'Invalid Supabase API key (401). Check SUPABASE_ANON_KEY in .env or Supabase project settings.'));
+      }
+      // If supabase returns an explicit 'email not confirmed' message, return a distinct failure code
+      final lower = msg.toLowerCase();
+      if (lower.contains('email not confirmed') ||
+          lower.contains('email is not confirmed') ||
+          lower.contains('email not verified') ||
+          lower.contains('email is not verified') ||
+          lower.contains('user not confirmed') ||
+          lower.contains('not confirmed') ||
+          lower.contains('verify your email')) {
+        return const Left(AuthFailure(
+            message: 'Email not confirmed. Please check your inbox.',
+            code: 'email-not-confirmed'));
+      }
+      return Left(AuthFailure(message: msg));
     }
   }
 
@@ -62,13 +115,73 @@ class AuthRepositoryImpl implements AuthRepository {
       final res = await _supabase.auth.signUp(email: email, password: password);
       final sbUser = res.user;
       if (sbUser == null) {
+        // Inspect dynamic response for detailed error
+        final dynError = (res as dynamic).error;
+        final errMsg = (dynError?.message ?? '').toString();
+        final errCodeStr = (dynError?.statusCode?.toString() ?? '');
+        final lower = errMsg.toLowerCase();
+        if (errCodeStr == '429' ||
+            lower.contains('over_email_send_rate_limit') ||
+            lower.contains('rate limit')) {
+          return const Left(AuthFailure(
+              message: 'Bạn gửi quá nhiều yêu cầu. Vui lòng chờ vài giây.',
+              code: 'over_email_send_rate_limit'));
+        }
+        if (lower.contains('email not confirmed') ||
+            lower.contains('confirm')) {
+          return const Left(AuthFailure(
+              message: 'Email not confirmed. Please check your inbox.',
+              code: 'email-not-confirmed'));
+        }
+        if (errMsg.isNotEmpty) return Left(AuthFailure(message: errMsg));
         return const Left(AuthFailure(message: 'Sign up failed'));
       }
 
       final userData = await _createSupabaseUserFromUser(sbUser, name);
       return Right(userData);
+    } catch (e, st) {
+      final msg = e.toString();
+      // ignore: avoid_print
+      print(
+          'Supabase debug -> url: ${SupabaseService.baseUrl}, anonPreview: ${SupabaseService.anonKeyPreview}');
+      // ignore: avoid_print
+      print('SignUp error: ${e.runtimeType}: $msg');
+      // ignore: avoid_print
+      print(st);
+      if (msg.contains('401') ||
+          msg.toLowerCase().contains('invalid api key')) {
+        return const Left(AuthFailure(
+            message:
+                'Invalid Supabase API key (401). Check SUPABASE_ANON_KEY in .env or Supabase project settings.'));
+      }
+      return Left(AuthFailure(message: msg));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> resendConfirmation(String email) async {
+    try {
+      final res = await _supabase.auth.signInWithOtp(email: email);
+      final dynError = (res as dynamic).error;
+      final errMsg = (dynError?.message ?? '').toString();
+      final errCodeStr = (dynError?.statusCode?.toString() ?? '');
+      final lower = errMsg.toLowerCase();
+      if (errCodeStr == '429' ||
+          lower.contains('over_email_send_rate_limit') ||
+          lower.contains('rate limit')) {
+        return const Left(AuthFailure(
+            message:
+                'Bạn gửi quá nhiều yêu cầu. Vui lòng chờ vài giây trước khi thử lại.',
+            code: 'over_email_send_rate_limit'));
+      }
+      if (errMsg.isNotEmpty) {
+        return Left(
+            AuthFailure(message: 'Could not resend confirmation: $errMsg'));
+      }
+      return const Right(null);
     } catch (e) {
-      return Left(AuthFailure(message: e.toString()));
+      final msg = e.toString();
+      return Left(AuthFailure(message: 'Could not resend confirmation: $msg'));
     }
   }
 

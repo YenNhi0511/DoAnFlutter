@@ -83,6 +83,7 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/animations/
+    - .env
 
   # fonts:  # Temporarily commented out - add font files into assets/fonts/ to enable
   #   - family: Poppins

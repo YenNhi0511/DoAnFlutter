@@ -40,7 +40,18 @@ class AuthFailure extends Failure {
       case 'user-disabled':
         return const AuthFailure(message: 'This account has been disabled');
       case 'too-many-requests':
-        return const AuthFailure(message: 'Too many attempts. Please try again later');
+        return const AuthFailure(
+            message: 'Too many attempts. Please try again later');
+      case 'email-not-confirmed':
+        return const AuthFailure(
+            message:
+                'Email not confirmed. Please verify your email and try again',
+            code: 'email-not-confirmed');
+      case 'over_email_send_rate_limit':
+        return const AuthFailure(
+            message:
+                'Bạn đã gửi quá nhiều yêu cầu email. Vui lòng chờ vài giây trước khi thử lại.',
+            code: 'over_email_send_rate_limit');
       default:
         return AuthFailure(message: 'Authentication failed: $code');
     }
@@ -60,6 +71,6 @@ class PermissionFailure extends Failure {
 }
 
 class UnknownFailure extends Failure {
-  const UnknownFailure({super.message = 'An unknown error occurred', super.code});
+  const UnknownFailure(
+      {super.message = 'An unknown error occurred', super.code});
 }
-

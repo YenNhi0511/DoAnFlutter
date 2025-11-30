@@ -25,7 +25,16 @@ void main() async {
   // Firebase removed: using Supabase Auth (Postgres) for authentication
   // No Firebase initialization or FCM setup - Supabase is the primary backend.
   // Load environment variables from .env (if present)
-  await dotenv.load(fileName: '.env');
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    // If the .env isn't accessible in the packaged app, print a helpful warning
+    // and continue using any fallback values (or dart-define). This prevents
+    // the app from crashing at startup when .env is missing.
+    // For production builds, prefer using --dart-define or secure secrets.
+    print(
+        '⚠️ .env not found at runtime (packaged app). If you rely on .env, add it to assets or use --dart-define.');
+  }
 
   // Quick validation / debug prints (will not show full secrets)
   final loadedUrl = dotenv.env['SUPABASE_URL'];

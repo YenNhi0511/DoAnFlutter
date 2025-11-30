@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -7,6 +8,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/error/failures.dart';
 import '../../../providers/auth_provider.dart';
 import '../../widgets/common/app_button.dart';
 import '../../widgets/common/app_text_field.dart';
@@ -25,6 +27,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
+  bool _isCooldown = false;
+  int _cooldownSeconds = 0;
+  Timer? _cooldownTimer;
 
   @override
   void dispose() {
@@ -33,6 +38,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+    _cooldownTimer?.cancel();
   }
 
   Future<void> _register() async {
@@ -51,10 +57,37 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (success && mounted) {
       context.go('/home');
     } else if (mounted) {
-      final error = ref.read(authNotifierProvider).error;
+      final errorObj = ref.read(authNotifierProvider).error;
+      String message = AppStrings.errorAuth;
+      String? code;
+      if (errorObj is Failure) {
+        message = errorObj.message;
+        code = errorObj.code;
+      } else if (errorObj != null) {
+        message = errorObj.toString();
+      }
+
+      // If over_email_send_rate_limit, disable the register button for 5 seconds
+      if (code == 'over_email_send_rate_limit') {
+        setState(() {
+          _isCooldown = true;
+          _cooldownSeconds = 5;
+        });
+        _cooldownTimer?.cancel();
+        _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+          setState(() {
+            _cooldownSeconds -= 1;
+            if (_cooldownSeconds <= 0) {
+              _isCooldown = false;
+              _cooldownTimer?.cancel();
+            }
+          });
+        });
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error?.toString() ?? AppStrings.errorAuth),
+          content: Text(message),
           backgroundColor: AppColors.error,
         ),
       );
@@ -103,9 +136,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     'Join ProjectFlow and start managing your projects',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.1),
-                  
+
                   const SizedBox(height: AppSizes.xl),
-                  
+
                   // Name Field
                   AppTextField(
                     label: AppStrings.fullName,
@@ -115,9 +148,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     prefixIcon: Iconsax.user,
                     validator: Validators.name,
                   ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
-                  
+
                   const SizedBox(height: AppSizes.md),
-                  
+
                   // Email Field
                   AppTextField(
                     label: AppStrings.email,
@@ -128,9 +161,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     prefixIcon: Iconsax.sms,
                     validator: Validators.email,
                   ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
-                  
+
                   const SizedBox(height: AppSizes.md),
-                  
+
                   // Password Field
                   AppTextField(
                     label: AppStrings.password,
@@ -141,9 +174,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     prefixIcon: Iconsax.lock,
                     validator: Validators.password,
                   ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
-                  
+
                   const SizedBox(height: AppSizes.md),
-                  
+
                   // Confirm Password Field
                   AppTextField(
                     label: AppStrings.confirmPassword,
@@ -158,27 +191,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                     onSubmitted: (_) => _register(),
                   ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
-                  
+
                   const SizedBox(height: AppSizes.xl),
-                  
+
                   // Register Button
                   AppButton(
-                    text: AppStrings.signUp,
-                    onPressed: _register,
-                    isLoading: _isLoading,
+                    text: _isCooldown
+                        ? 'Vui lòng chờ ($_cooldownSeconds)s'
+                        : AppStrings.signUp,
+                    onPressed: (_isLoading || _isCooldown) ? null : _register,
+                    isLoading: _isLoading || _isCooldown,
                   ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1),
-                  
+
                   const SizedBox(height: AppSizes.lg),
-                  
+
                   // Terms
                   Text(
                     'By signing up, you agree to our Terms of Service and Privacy Policy',
                     style: Theme.of(context).textTheme.bodySmall,
                     textAlign: TextAlign.center,
                   ).animate().fadeIn(delay: 700.ms),
-                  
+
                   const SizedBox(height: AppSizes.lg),
-                  
+
                   // Login Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -202,4 +237,3 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 }
-

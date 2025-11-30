@@ -42,7 +42,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     final result = await _repository.signIn(email, password);
     return result.fold(
       (failure) {
-        state = AsyncValue.error(failure.message, StackTrace.current);
+        // Preserve the failure object in the AsyncValue error for richer UI handling
+        state = AsyncValue.error(failure, StackTrace.current);
         return false;
       },
       (user) {
@@ -57,7 +58,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     final result = await _repository.signUp(email, password, name);
     return result.fold(
       (failure) {
-        state = AsyncValue.error(failure.message, StackTrace.current);
+        state = AsyncValue.error(failure, StackTrace.current);
         return false;
       },
       (user) {
@@ -65,6 +66,17 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
         return true;
       },
     );
+  }
+
+  Future<bool> resendConfirmation(String email) async {
+    final result = await _repository.resendConfirmation(email);
+    return result.fold((failure) {
+      state = AsyncValue.error(failure, StackTrace.current);
+      return false;
+    }, (r) {
+      // Keep previous state; not signing user in
+      return true;
+    });
   }
 
   Future<void> signOut() async {

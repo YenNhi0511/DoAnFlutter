@@ -38,23 +38,57 @@
 
 ## 📁 Cấu trúc Dự án
 
-```
+````
 lib/
 ├── core/
-│   ├── constants/      # Màu sắc, kích thước, chuỗi
-│   ├── error/          # Xử lý lỗi và ngoại lệ
-│   ├── router/         # Cấu hình GoRouter
-│   ├── services/       # Supabase, thông báo, lưu trữ
-│   ├── theme/          # Cấu hình theme
-│   └── utils/          # Extensions, validators
-├── data/
-│   ├── models/         # Các model dữ liệu
-│   └── repositories/   # Repositories
-├── providers/          # Riverpod providers
-└── ui/
-    ├── screens/        # Các màn hình
-    └── widgets/        # Widget tái sử dụng
+### ✔️ Chẩn đoán ANON key (supabase)
+
+Nếu bạn thấy lỗi 401 (Invalid API key) khi đăng ký hoặc đăng nhập,
+kiểm tra `SUPABASE_URL` và `SUPABASE_ANON_KEY` bằng script chuẩn đoán:
+
+On macOS/Linux:
+```bash
+SUPABASE_URL=https://xyz.supabase.co SUPABASE_ANON_KEY=ey... ./scripts/check_supabase_key.sh
+````
+
+On Windows (cmd.exe / PowerShell):
+
+```powershell
+set SUPABASE_URL=https://xyz.supabase.co
+set SUPABASE_ANON_KEY=ey...
+scripts\check_supabase_key.bat
 ```
+
+If the script returns 200, the anon key is valid and allowed to access the Rest API.
+If the script returns 401, verify you've used the `anon` key (not the service_role key), and re-check the project settings in Supabase > Settings > API.
+
+### 🛂 Email confirmation / Login error 400
+
+If you see an error like `email not confirmed` or status code `400` when trying to sign in (even with correct credentials), it means your Supabase project requires email verification before users can sign in.
+
+How to fix:
+
+- Check your Supabase project Authentication settings (Dashboard > Authentication > Settings). Ensure email confirmations are enabled/disabled as you expect.
+- Confirm the user by clicking the email verification link sent when they signed up. In development, you can view sent email events in Supabase email logs or use a dev email service.
+- To help users who didn't receive the confirmation link, the app includes a "Resend Confirmation" flow: on the login screen, when a login fails due to unconfirmed email, the UI will show a "Resend" button. Click it to send a confirmation/magic link to the same email.
+- If you need to bypass verification during development: either temporarily disable email confirmations or create test users via the Supabase dashboard.
+
+If you continue to encounter `400` or `401` errors after verifying keys and confirming the email, use the diagnostic scripts above and check the Supabase Console for event logs.
+│ ├── constants/ # Màu sắc, kích thước, chuỗi
+│ ├── error/ # Xử lý lỗi và ngoại lệ
+│ ├── router/ # Cấu hình GoRouter
+│ ├── services/ # Supabase, thông báo, lưu trữ
+│ ├── theme/ # Cấu hình theme
+│ └── utils/ # Extensions, validators
+├── data/
+│ ├── models/ # Các model dữ liệu
+│ └── repositories/ # Repositories
+├── providers/ # Riverpod providers
+└── ui/
+├── screens/ # Các màn hình
+└── widgets/ # Widget tái sử dụng
+
+````
 
 ## 🚦 Bắt đầu
 
@@ -70,7 +104,7 @@ lib/
 ```bash
 git clone https://github.com/yourusername/project_flow.git
 cd project_flow
-```
+````
 
 2. **Cài đặt dependencies**
 
@@ -88,26 +122,32 @@ flutter pub get
 
    ```dart
    import 'package:flutter_dotenv/flutter_dotenv.dart';
-
-   await dotenv.load(fileName: '.env');
-   await SupabaseService.initialize(
-     url: dotenv.env['SUPABASE_URL']!,
-     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-   );
    ```
 
-   **Option B (quick — direct edit)**
+await dotenv.load(fileName: '.env');
+await SupabaseService.initialize(
+url: dotenv.env['SUPABASE_URL']!,
+anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+);
 
-   ```dart
-   await SupabaseService.initialize(
-     url: 'YOUR_SUPABASE_URL',
-     anonKey: 'YOUR_SUPABASE_ANON_KEY',
-   );
-   ```
+````
 
-   - Tạo một bucket Storage tên `attachments` (dùng để lưu file đính kèm)
-     - Vào Supabase > Storage > New bucket: `attachments`
-     - Chọn Public nếu bạn muốn file có thể truy cập bằng URL
+**Option B (quick — direct edit)**
+
+```dart
+await SupabaseService.initialize(
+  url: 'YOUR_SUPABASE_URL',
+  anonKey: 'YOUR_SUPABASE_ANON_KEY',
+);
+````
+
+- Note: If you run the app on Android/iOS, make sure `.env` is included in the app assets
+  (add `- .env` to the `assets:` list in `pubspec.yaml`) or use `--dart-define` to provide
+  the keys at build time, otherwise `dotenv.load()` may fail at runtime and cause a crash.
+
+- Tạo một bucket Storage tên `attachments` (dùng để lưu file đính kèm)
+  - Vào Supabase > Storage > New bucket: `attachments`
+  - Chọn Public nếu bạn muốn file có thể truy cập bằng URL
 
 4. **Chạy ứng dụng**
 

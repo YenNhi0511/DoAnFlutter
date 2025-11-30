@@ -8,6 +8,7 @@ import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/utils/validators.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../core/error/failures.dart';
 import '../../widgets/common/app_button.dart';
 import '../../widgets/common/app_text_field.dart';
 
@@ -46,13 +47,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (success && mounted) {
       context.go('/home');
     } else if (mounted) {
-      final error = ref.read(authNotifierProvider).error;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error?.toString() ?? AppStrings.errorAuth),
-          backgroundColor: AppColors.error,
-        ),
+      final errorObj = ref.read(authNotifierProvider).error;
+      String message = AppStrings.errorAuth;
+      String? code;
+      if (errorObj is Failure) {
+        message = errorObj.message;
+        code = errorObj.code;
+      } else if (errorObj != null) {
+        message = errorObj.toString();
+      }
+
+      final snackBar = SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.error,
+        action: code == 'email-not-confirmed'
+            ? SnackBarAction(
+                label: 'Resend',
+                textColor: Colors.white,
+                onPressed: () async {
+                  // attempt to resend confirmation
+                  final email = _emailController.text.trim();
+                  if (email.isEmpty) return;
+                  setState(() => _isLoading = true);
+                  final ok = await ref
+                      .read(authNotifierProvider.notifier)
+                      .resendConfirmation(email);
+                  setState(() => _isLoading = false);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(ok
+                          ? 'Confirmation link sent — check your email.'
+                          : 'Failed to send confirmation link.'),
+                    ),
+                  );
+                },
+              )
+            : null,
       );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
 
@@ -81,7 +113,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: size.height * 0.08),
-                  
+
                   // Logo & Title
                   Center(
                     child: Column(
@@ -90,7 +122,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           padding: const EdgeInsets.all(AppSizes.md),
                           decoration: BoxDecoration(
                             gradient: AppColors.primaryGradient,
-                            borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                            borderRadius:
+                                BorderRadius.circular(AppSizes.radiusLg),
                             boxShadow: AppColors.elevatedShadow,
                           ),
                           child: const Icon(
@@ -99,13 +132,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             color: Colors.white,
                           ),
                         ).animate().scale(
-                          duration: 600.ms,
-                          curve: Curves.elasticOut,
-                        ),
+                              duration: 600.ms,
+                              curve: Curves.elasticOut,
+                            ),
                         const SizedBox(height: AppSizes.md),
                         Text(
                           AppStrings.appName,
-                          style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                          style: Theme.of(context)
+                              .textTheme
+                              .displaySmall
+                              ?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: isDark
                                     ? AppColors.textPrimaryDark
@@ -120,9 +156,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ],
                     ),
                   ),
-                  
+
                   SizedBox(height: size.height * 0.06),
-                  
+
                   // Welcome Text
                   Text(
                     'Welcome Back',
@@ -135,9 +171,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     'Sign in to continue managing your projects',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ).animate().fadeIn(delay: 500.ms).slideX(begin: -0.1),
-                  
+
                   const SizedBox(height: AppSizes.xl),
-                  
+
                   // Email Field
                   AppTextField(
                     label: AppStrings.email,
@@ -148,9 +184,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     prefixIcon: Iconsax.sms,
                     validator: Validators.email,
                   ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1),
-                  
+
                   const SizedBox(height: AppSizes.md),
-                  
+
                   // Password Field
                   AppTextField(
                     label: AppStrings.password,
@@ -162,9 +198,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     validator: Validators.password,
                     onSubmitted: (_) => _login(),
                   ).animate().fadeIn(delay: 700.ms).slideY(begin: 0.1),
-                  
+
                   const SizedBox(height: AppSizes.sm),
-                  
+
                   // Forgot Password
                   Align(
                     alignment: Alignment.centerRight,
@@ -173,47 +209,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: const Text(AppStrings.forgotPassword),
                     ),
                   ).animate().fadeIn(delay: 800.ms),
-                  
+
                   const SizedBox(height: AppSizes.lg),
-                  
+
                   // Login Button
                   AppButton(
                     text: AppStrings.login,
                     onPressed: _login,
                     isLoading: _isLoading,
                   ).animate().fadeIn(delay: 900.ms).slideY(begin: 0.1),
-                  
+
                   const SizedBox(height: AppSizes.lg),
-                  
+
                   // Divider
                   Row(
                     children: [
-                      Expanded(child: Divider(color: AppColors.textTertiary.withOpacity(0.3))),
+                      Expanded(
+                          child: Divider(
+                              color: AppColors.textTertiary.withOpacity(0.3))),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: AppSizes.md),
                         child: Text(
                           AppStrings.orContinueWith,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ),
-                      Expanded(child: Divider(color: AppColors.textTertiary.withOpacity(0.3))),
+                      Expanded(
+                          child: Divider(
+                              color: AppColors.textTertiary.withOpacity(0.3))),
                     ],
                   ).animate().fadeIn(delay: 1000.ms),
-                  
+
                   const SizedBox(height: AppSizes.lg),
-                  
-                  // Google Sign In
-                  AppButton(
-                    text: 'Continue with Google',
-                    variant: AppButtonVariant.outline,
-                    icon: Icons.g_mobiledata,
-                    onPressed: () {
-                      // TODO: Implement Google Sign In
-                    },
-                  ).animate().fadeIn(delay: 1100.ms).slideY(begin: 0.1),
-                  
+
+                  // Google Sign In removed — Supabase Social sign-in not configured for this app.
+
                   const SizedBox(height: AppSizes.xl),
-                  
+
                   // Sign Up Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -237,4 +270,3 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
-

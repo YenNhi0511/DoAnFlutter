@@ -2,11 +2,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseService {
   static SupabaseClient get client => Supabase.instance.client;
-  
+  static String? baseUrl;
+  static String? anonKeyPreview;
+
   static Future<void> initialize({
     required String url,
     required String anonKey,
   }) async {
+    baseUrl = url;
+    // Store a preview of the anon key for safe dev logging
+    anonKeyPreview =
+        anonKey.length > 30 ? '${anonKey.substring(0, 30)}...' : anonKey;
     await Supabase.initialize(
       url: url,
       anonKey: anonKey,
@@ -31,4 +37,3 @@ class SupabaseService {
   static const String notificationsTable = 'notifications';
   static const String activitiesTable = 'activities';
 }
-

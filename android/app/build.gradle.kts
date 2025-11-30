@@ -2,7 +2,7 @@ plugins {
     id("com.android.application")
     // START: FlutterFire Configuration - removed when migrating off Firebase
     // END: FlutterFire Configuration
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -19,7 +19,8 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        // Keep this as a simple string (expected by Kotlin plugin)
+        jvmTarget = "17"
     }
 
     // Module-level dependencies are declared below; keep android-specific configs here
@@ -48,6 +49,8 @@ flutter {
     source = "../.."
 }
 
+// Module-level dependencies
 dependencies {
+    // Required for Android core library desugaring (enables using java.time APIs on older devices)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
