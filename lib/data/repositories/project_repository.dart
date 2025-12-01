@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/error/failures.dart';
 import '../../core/services/supabase_service.dart';
@@ -15,9 +17,11 @@ abstract class ProjectRepository {
   Future<Either<Failure, void>> archiveProject(String projectId);
   Stream<List<ProjectModel>> watchProjects(String userId);
   Future<Either<Failure, List<UserModel>>> getProjectMembers(String projectId);
-  Future<Either<Failure, void>> addMember(String projectId, String email, MemberRole role);
+  Future<Either<Failure, void>> addMember(
+      String projectId, String email, MemberRole role);
   Future<Either<Failure, void>> removeMember(String projectId, String userId);
-  Future<Either<Failure, void>> updateMemberRole(String projectId, String userId, MemberRole role);
+  Future<Either<Failure, void>> updateMemberRole(
+      String projectId, String userId, MemberRole role);
 }
 
 class ProjectRepositoryImpl implements ProjectRepository {
@@ -63,7 +67,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       ];
 
       // Remove duplicates
-      final uniqueProjects = {for (var p in allProjects) p.id: p}.values.toList();
+      final uniqueProjects =
+          {for (var p in allProjects) p.id: p}.values.toList();
 
       return Right(uniqueProjects);
     } catch (e) {
@@ -87,31 +92,91 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
-  Future<Either<Failure, ProjectModel>> createProject(ProjectModel project) async {
+  Future<Either<Failure, ProjectModel>> createProject(
+      ProjectModel project) async {
     try {
-      final response = await _supabase
-          .from(SupabaseService.projectsTable)
-          .insert(project.toInsertJson())
-          .select()
-          .single();
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        return Left(ServerFailure(message: 'User not authenticated'));
+      }
 
-      final createdProject = ProjectModel.fromJson(response);
+      // Start a transaction to ensure data consistency
+      try {
+        final response =
+            await _supabase.rpc('create_project_with_owner', params: {
+          'p_name': project.name,
+          'p_owner_id': project.ownerId,
+          'p_description': project.description,
+          'p_color_hex': project.colorHex,
+          'p_icon_name': project.iconName,
+        });
 
-      // Add owner as member
-      await _supabase.from(SupabaseService.projectMembersTable).insert({
-        'project_id': createdProject.id,
-        'user_id': project.ownerId,
-        'role': 'owner',
-      });
+        if (response == null) {
+          return Left(
+              ServerFailure(message: 'Failed to create project: No response'));
+        }
 
-      return Right(createdProject);
+        // Handle different response formats
+        Map<String, dynamic> projectData;
+        if (response is Map<String, dynamic>) {
+          projectData = response;
+        } else if (response is String) {
+          // If response is JSON string, parse it
+          projectData = Map<String, dynamic>.from(
+            jsonDecode(response) as Map,
+          );
+        } else {
+          return Left(ServerFailure(
+            message: 'Unexpected response format: ${response.runtimeType}',
+          ));
+        }
+
+        // Convert the response to ProjectModel
+        final createdProject = ProjectModel.fromJson(projectData);
+        return Right(createdProject);
+      } catch (rpcError) {
+        // If RPC fails, try direct insert as fallback
+        debugPrint('RPC failed, trying direct insert: $rpcError');
+        try {
+          final response = await _supabase
+              .from(SupabaseService.projectsTable)
+              .insert({
+                'name': project.name,
+                'description': project.description,
+                'owner_id': project.ownerId,
+                'color_hex': project.colorHex,
+                'icon_name': project.iconName,
+                'is_archived': project.isArchived,
+              })
+              .select()
+              .single();
+
+          final createdProject = ProjectModel.fromJson(response);
+
+          // Add owner as member
+          await _supabase.from(SupabaseService.projectMembersTable).insert({
+            'project_id': createdProject.id,
+            'user_id': project.ownerId,
+            'role': 'owner',
+          });
+
+          return Right(createdProject);
+        } catch (directError) {
+          debugPrint('Direct insert also failed: $directError');
+          return Left(ServerFailure(
+            message: 'Failed to create project: ${rpcError.toString()}',
+          ));
+        }
+      }
     } catch (e) {
+      debugPrint('Error creating project: $e');
       return Left(ServerFailure(message: e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, ProjectModel>> updateProject(ProjectModel project) async {
+  Future<Either<Failure, ProjectModel>> updateProject(
+      ProjectModel project) async {
     try {
       final response = await _supabase
           .from(SupabaseService.projectsTable)
@@ -149,13 +214,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<Either<Failure, void>> archiveProject(String projectId) async {
     try {
-      await _supabase
-          .from(SupabaseService.projectsTable)
-          .update({
-            'is_archived': true,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', projectId);
+      await _supabase.from(SupabaseService.projectsTable).update({
+        'is_archived': true,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', projectId);
 
       return const Right(null);
     } catch (e) {
@@ -174,16 +236,16 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
-  Future<Either<Failure, List<UserModel>>> getProjectMembers(String projectId) async {
+  Future<Either<Failure, List<UserModel>>> getProjectMembers(
+      String projectId) async {
     try {
       final memberData = await _supabase
           .from(SupabaseService.projectMembersTable)
           .select('user_id')
           .eq('project_id', projectId);
 
-      final userIds = (memberData as List)
-          .map((e) => e['user_id'] as String)
-          .toList();
+      final userIds =
+          (memberData as List).map((e) => e['user_id'] as String).toList();
 
       if (userIds.isEmpty) {
         return const Right([]);
@@ -231,7 +293,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
           .maybeSingle();
 
       if (existing != null) {
-        return const Left(ValidationFailure(message: 'User is already a member'));
+        return const Left(
+            ValidationFailure(message: 'User is already a member'));
       }
 
       await _supabase.from(SupabaseService.projectMembersTable).insert({
@@ -293,4 +356,3 @@ class ProjectRepositoryImpl implements ProjectRepository {
     }
   }
 }
-

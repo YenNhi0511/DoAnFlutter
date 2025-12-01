@@ -1,10 +1,8 @@
 -- =============================================
 -- ProjectFlow Database Schema for Supabase
 -- =============================================
-
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- =============================================
 -- USERS TABLE
 -- =============================================
@@ -18,7 +16,6 @@ CREATE TABLE IF NOT EXISTS USERS (
     CREATED_AT TIMESTAMPTZ DEFAULT NOW(),
     UPDATED_AT TIMESTAMPTZ DEFAULT NOW()
 );
-
 -- =============================================
 -- PROJECTS TABLE
 -- =============================================
@@ -33,7 +30,6 @@ CREATE TABLE IF NOT EXISTS PROJECTS (
     CREATED_AT TIMESTAMPTZ DEFAULT NOW(),
     UPDATED_AT TIMESTAMPTZ DEFAULT NOW()
 );
-
 -- =============================================
 -- PROJECT MEMBERS TABLE
 -- =============================================
@@ -45,7 +41,6 @@ CREATE TABLE IF NOT EXISTS PROJECT_MEMBERS (
     JOINED_AT TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(PROJECT_ID, USER_ID)
 );
-
 -- =============================================
 -- BOARDS TABLE
 -- =============================================
@@ -57,7 +52,6 @@ CREATE TABLE IF NOT EXISTS BOARDS (
     CREATED_AT TIMESTAMPTZ DEFAULT NOW(),
     UPDATED_AT TIMESTAMPTZ DEFAULT NOW()
 );
-
 -- =============================================
 -- BOARD COLUMNS TABLE
 -- =============================================
@@ -67,12 +61,19 @@ CREATE TABLE IF NOT EXISTS BOARD_COLUMNS (
     NAME TEXT NOT NULL,
     POSITION INTEGER NOT NULL DEFAULT 0,
     COLOR_HEX TEXT DEFAULT '#E2E8F0',
-    TYPE TEXT DEFAULT 'custom' CHECK (TYPE IN ('todo', 'in_progress', 'review', 'done', 'custom')),
+    TYPE TEXT DEFAULT 'custom' CHECK (
+        TYPE IN (
+            'todo',
+            'in_progress',
+            'review',
+            'done',
+            'custom'
+        )
+    ),
     TASK_LIMIT INTEGER,
     CREATED_AT TIMESTAMPTZ DEFAULT NOW(),
     UPDATED_AT TIMESTAMPTZ DEFAULT NOW()
 );
-
 -- =============================================
 -- LABELS TABLE
 -- =============================================
@@ -83,7 +84,6 @@ CREATE TABLE IF NOT EXISTS LABELS (
     COLOR_HEX TEXT NOT NULL,
     CREATED_AT TIMESTAMPTZ DEFAULT NOW()
 );
-
 -- =============================================
 -- TASKS TABLE
 -- =============================================
@@ -97,16 +97,16 @@ CREATE TABLE IF NOT EXISTS TASKS (
     POSITION INTEGER NOT NULL DEFAULT 0,
     PRIORITY TEXT DEFAULT 'medium' CHECK (PRIORITY IN ('low', 'medium', 'high', 'urgent')),
     DUE_DATE TIMESTAMPTZ,
-    ASSIGNEE_ID TEXT REFERENCES USERS(ID) ON DELETE SET NULL,
-    CREATED_BY_ID TEXT NOT NULL REFERENCES USERS(ID) ON DELETE CASCADE,
-    LABEL_IDS UUID[] DEFAULT '{}',
-    ATTACHMENT_URLS TEXT[] DEFAULT '{}',
-    IS_COMPLETED BOOLEAN DEFAULT FALSE,
-    COMPLETED_AT TIMESTAMPTZ,
-    CREATED_AT TIMESTAMPTZ DEFAULT NOW(),
-    UPDATED_AT TIMESTAMPTZ DEFAULT NOW()
+    ASSIGNEE_ID TEXT REFERENCES USERS(ID) ON DELETE
+    SET NULL,
+        CREATED_BY_ID TEXT NOT NULL REFERENCES USERS(ID) ON DELETE CASCADE,
+        LABEL_IDS UUID [] DEFAULT '{}',
+        ATTACHMENT_URLS TEXT [] DEFAULT '{}',
+        IS_COMPLETED BOOLEAN DEFAULT FALSE,
+        COMPLETED_AT TIMESTAMPTZ,
+        CREATED_AT TIMESTAMPTZ DEFAULT NOW(),
+        UPDATED_AT TIMESTAMPTZ DEFAULT NOW()
 );
-
 -- =============================================
 -- COMMENTS TABLE
 -- =============================================
@@ -115,12 +115,11 @@ CREATE TABLE IF NOT EXISTS COMMENTS (
     TASK_ID UUID NOT NULL REFERENCES TASKS(ID) ON DELETE CASCADE,
     USER_ID TEXT NOT NULL REFERENCES USERS(ID) ON DELETE CASCADE,
     CONTENT TEXT NOT NULL,
-    ATTACHMENT_URLS TEXT[] DEFAULT '{}',
+    ATTACHMENT_URLS TEXT [] DEFAULT '{}',
     IS_EDITED BOOLEAN DEFAULT FALSE,
     CREATED_AT TIMESTAMPTZ DEFAULT NOW(),
     UPDATED_AT TIMESTAMPTZ DEFAULT NOW()
 );
-
 -- =============================================
 -- NOTIFICATIONS TABLE
 -- =============================================
@@ -134,7 +133,6 @@ CREATE TABLE IF NOT EXISTS NOTIFICATIONS (
     IS_READ BOOLEAN DEFAULT FALSE,
     CREATED_AT TIMESTAMPTZ DEFAULT NOW()
 );
-
 -- =============================================
 -- ACTIVITIES TABLE (for activity feed)
 -- =============================================
@@ -148,342 +146,306 @@ CREATE TABLE IF NOT EXISTS ACTIVITIES (
     METADATA JSONB DEFAULT '{}',
     CREATED_AT TIMESTAMPTZ DEFAULT NOW()
 );
-
 -- =============================================
 -- USER_DEVICES table has been removed from the schema
-
 -- =============================================
 -- INDEXES
 -- =============================================
 CREATE INDEX IF NOT EXISTS IDX_PROJECTS_OWNER ON PROJECTS(OWNER_ID);
-
 CREATE INDEX IF NOT EXISTS IDX_PROJECT_MEMBERS_PROJECT ON PROJECT_MEMBERS(PROJECT_ID);
-
 CREATE INDEX IF NOT EXISTS IDX_PROJECT_MEMBERS_USER ON PROJECT_MEMBERS(USER_ID);
-
 CREATE INDEX IF NOT EXISTS IDX_BOARDS_PROJECT ON BOARDS(PROJECT_ID);
-
 CREATE INDEX IF NOT EXISTS IDX_COLUMNS_BOARD ON BOARD_COLUMNS(BOARD_ID);
-
 CREATE INDEX IF NOT EXISTS IDX_TASKS_COLUMN ON TASKS(COLUMN_ID);
-
 CREATE INDEX IF NOT EXISTS IDX_TASKS_BOARD ON TASKS(BOARD_ID);
-
 CREATE INDEX IF NOT EXISTS IDX_TASKS_PROJECT ON TASKS(PROJECT_ID);
-
 CREATE INDEX IF NOT EXISTS IDX_TASKS_ASSIGNEE ON TASKS(ASSIGNEE_ID);
-
 CREATE INDEX IF NOT EXISTS IDX_COMMENTS_TASK ON COMMENTS(TASK_ID);
-
 CREATE INDEX IF NOT EXISTS IDX_NOTIFICATIONS_USER ON NOTIFICATIONS(USER_ID);
-
 CREATE INDEX IF NOT EXISTS IDX_ACTIVITIES_PROJECT ON ACTIVITIES(PROJECT_ID);
-
 -- =============================================
 -- ROW LEVEL SECURITY (RLS)
 -- =============================================
-
 -- Enable RLS on all tables
 ALTER TABLE USERS ENABLE ROW LEVEL SECURITY;
-
 ALTER TABLE PROJECTS ENABLE ROW LEVEL SECURITY;
-
 ALTER TABLE PROJECT_MEMBERS ENABLE ROW LEVEL SECURITY;
-
 ALTER TABLE BOARDS ENABLE ROW LEVEL SECURITY;
-
 ALTER TABLE BOARD_COLUMNS ENABLE ROW LEVEL SECURITY;
-
 ALTER TABLE TASKS ENABLE ROW LEVEL SECURITY;
-
 ALTER TABLE COMMENTS ENABLE ROW LEVEL SECURITY;
-
 ALTER TABLE LABELS ENABLE ROW LEVEL SECURITY;
-
 ALTER TABLE NOTIFICATIONS ENABLE ROW LEVEL SECURITY;
-
 ALTER TABLE ACTIVITIES ENABLE ROW LEVEL SECURITY;
-
 -- Users policies
-CREATE POLICY "Users can view all users" ON USERS FOR SELECT USING (TRUE);
-
-CREATE POLICY "Users can update own profile" ON USERS FOR UPDATE USING (ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub');
-
-CREATE POLICY "Users can insert own profile" ON USERS FOR INSERT WITH CHECK (TRUE);
-
+CREATE POLICY "Users can view all users" ON USERS FOR
+SELECT USING (TRUE);
+CREATE POLICY "Users can update own profile" ON USERS FOR
+UPDATE USING (
+        ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+    );
+CREATE POLICY "Users can insert own profile" ON USERS FOR
+INSERT WITH CHECK (TRUE);
 -- Projects policies
-CREATE POLICY "Users can view projects they own or are members of" ON PROJECTS FOR SELECT
-    USING (
+CREATE POLICY "Users can view projects they own or are members of" ON PROJECTS FOR
+SELECT USING (
         OWNER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
         OR ID IN (
-    SELECT
-                           PROJECT_ID
-    FROM
-                           PROJECT_MEMBERS
-    WHERE
-                           USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
-)
+            SELECT PROJECT_ID
+            FROM PROJECT_MEMBERS
+            WHERE USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+        )
     );
-
-CREATE POLICY "Users can create projects" ON PROJECTS FOR INSERT WITH CHECK (TRUE);
-
-CREATE POLICY "Owners can update their projects" ON PROJECTS FOR UPDATE
-    USING (OWNER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub');
-
-CREATE POLICY "Owners can delete their projects" ON PROJECTS FOR DELETE
-    USING (OWNER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub');
-
+CREATE POLICY "Users can create projects" ON PROJECTS FOR
+INSERT WITH CHECK (TRUE);
+CREATE POLICY "Owners can update their projects" ON PROJECTS FOR
+UPDATE USING (
+        OWNER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+    );
+CREATE POLICY "Owners can delete their projects" ON PROJECTS FOR DELETE USING (
+    OWNER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+);
 -- Project members policies
-CREATE POLICY "Members can view project members" ON PROJECT_MEMBERS FOR SELECT
-    USING (
+CREATE POLICY "Members can view project members" ON PROJECT_MEMBERS FOR
+SELECT USING (
         PROJECT_ID IN (
-    SELECT
-                           ID
-    FROM
-                           PROJECTS
-    WHERE
-                           OWNER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
-)
+            SELECT ID
+            FROM PROJECTS
+            WHERE OWNER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+        )
         OR PROJECT_ID IN (
-    SELECT
-                           PROJECT_ID
-    FROM
-                           PROJECT_MEMBERS
-    WHERE
-                           USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
-)
+            SELECT PROJECT_ID
+            FROM PROJECT_MEMBERS
+            WHERE USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+        )
     );
-
-CREATE POLICY "Owners/admins can manage members" ON PROJECT_MEMBERS FOR ALL
-    USING (
-        PROJECT_ID IN (
-    SELECT
-                           ID
-    FROM
-                           PROJECTS
-    WHERE
-                           OWNER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
-)
-        OR PROJECT_ID IN (
-    SELECT
-                           PROJECT_ID
-    FROM
-                           PROJECT_MEMBERS
-    WHERE
-                           USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
-        AND ROLE IN ('owner', 'admin')
-)
-    );
-
+CREATE POLICY "Owners/admins can manage members" ON PROJECT_MEMBERS FOR ALL USING (
+    PROJECT_ID IN (
+        SELECT ID
+        FROM PROJECTS
+        WHERE OWNER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+    )
+    OR PROJECT_ID IN (
+        SELECT PROJECT_ID
+        FROM PROJECT_MEMBERS
+        WHERE USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+            AND ROLE IN ('owner', 'admin')
+    )
+);
 -- Boards, columns, tasks, comments - similar pattern
-CREATE POLICY "Project members can view boards" ON BOARDS FOR SELECT
-    USING (
+CREATE POLICY "Project members can view boards" ON BOARDS FOR
+SELECT USING (
         PROJECT_ID IN (
-    SELECT
-                           ID
-    FROM
-                           PROJECTS
-    WHERE
-                           OWNER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
-)
+            SELECT ID
+            FROM PROJECTS
+            WHERE OWNER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+        )
         OR PROJECT_ID IN (
-    SELECT
-                           PROJECT_ID
-    FROM
-                           PROJECT_MEMBERS
-    WHERE
-                           USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
-)
+            SELECT PROJECT_ID
+            FROM PROJECT_MEMBERS
+            WHERE USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+        )
     );
-
-CREATE POLICY "Project members can manage boards" ON BOARDS FOR ALL
-    USING (
-        PROJECT_ID IN (
-    SELECT
-                           ID
-    FROM
-                           PROJECTS
-    WHERE
-                           OWNER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
-)
-        OR PROJECT_ID IN (
-    SELECT
-                           PROJECT_ID
-    FROM
-                           PROJECT_MEMBERS
-    WHERE
-                           USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
-        AND ROLE IN ('owner', 'admin', 'member')
-)
-    );
-
+CREATE POLICY "Project members can manage boards" ON BOARDS FOR ALL USING (
+    PROJECT_ID IN (
+        SELECT ID
+        FROM PROJECTS
+        WHERE OWNER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+    )
+    OR PROJECT_ID IN (
+        SELECT PROJECT_ID
+        FROM PROJECT_MEMBERS
+        WHERE USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+            AND ROLE IN ('owner', 'admin', 'member')
+    )
+);
 -- Similar policies for board_columns, tasks, comments, labels
-CREATE POLICY "Members can view columns" ON BOARD_COLUMNS FOR SELECT USING (TRUE);
-
+CREATE POLICY "Members can view columns" ON BOARD_COLUMNS FOR
+SELECT USING (TRUE);
 CREATE POLICY "Members can manage columns" ON BOARD_COLUMNS FOR ALL USING (TRUE);
-
-CREATE POLICY "Members can view tasks" ON TASKS FOR SELECT USING (TRUE);
-
+CREATE POLICY "Members can view tasks" ON TASKS FOR
+SELECT USING (TRUE);
 CREATE POLICY "Members can manage tasks" ON TASKS FOR ALL USING (TRUE);
-
-CREATE POLICY "Members can view comments" ON COMMENTS FOR SELECT USING (TRUE);
-
+CREATE POLICY "Members can view comments" ON COMMENTS FOR
+SELECT USING (TRUE);
 CREATE POLICY "Members can manage comments" ON COMMENTS FOR ALL USING (TRUE);
-
-CREATE POLICY "Members can view labels" ON LABELS FOR SELECT USING (TRUE);
-
+CREATE POLICY "Members can view labels" ON LABELS FOR
+SELECT USING (TRUE);
 CREATE POLICY "Members can manage labels" ON LABELS FOR ALL USING (TRUE);
-
-CREATE POLICY "Users can view own notifications" ON NOTIFICATIONS FOR SELECT
-    USING (USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub');
-
-CREATE POLICY "Users can update own notifications" ON NOTIFICATIONS FOR UPDATE
-    USING (USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub');
-
-CREATE POLICY "Members can view activities" ON ACTIVITIES FOR SELECT USING (TRUE);
-
-CREATE POLICY "Members can create activities" ON ACTIVITIES FOR INSERT WITH CHECK (TRUE);
-
+CREATE POLICY "Users can view own notifications" ON NOTIFICATIONS FOR
+SELECT USING (
+        USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+    );
+CREATE POLICY "Users can update own notifications" ON NOTIFICATIONS FOR
+UPDATE USING (
+        USER_ID = CURRENT_SETTING('request.jwt.claims')::JSON->>'sub'
+    );
+CREATE POLICY "Members can view activities" ON ACTIVITIES FOR
+SELECT USING (TRUE);
+CREATE POLICY "Members can create activities" ON ACTIVITIES FOR
+INSERT WITH CHECK (TRUE);
 -- Policies for user devices previously existed but were removed with the table
-
 -- =============================================
 -- REALTIME SUBSCRIPTIONS
 -- =============================================
-
 -- Enable realtime for specific tables
 ALTER PUBLICATION SUPABASE_REALTIME
-    ADD TABLE PROJECTS;
-
+ADD TABLE PROJECTS;
 ALTER PUBLICATION SUPABASE_REALTIME
-    ADD TABLE BOARDS;
-
+ADD TABLE BOARDS;
 ALTER PUBLICATION SUPABASE_REALTIME
-    ADD TABLE BOARD_COLUMNS;
-
+ADD TABLE BOARD_COLUMNS;
 ALTER PUBLICATION SUPABASE_REALTIME
-    ADD TABLE TASKS;
-
+ADD TABLE TASKS;
 ALTER PUBLICATION SUPABASE_REALTIME
-    ADD TABLE COMMENTS;
-
+ADD TABLE COMMENTS;
 ALTER PUBLICATION SUPABASE_REALTIME
-    ADD TABLE NOTIFICATIONS;
-
+ADD TABLE NOTIFICATIONS;
 -- =============================================
 -- FUNCTIONS & TRIGGERS
 -- =============================================
-
 -- Function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION UPDATE_UPDATED_AT_COLUMN(
-) RETURNS TRIGGER AS
-    $$      BEGIN NEW.UPDATED_AT = NOW();
-    RETURN  NEW;
+CREATE OR REPLACE FUNCTION UPDATE_UPDATED_AT_COLUMN() RETURNS TRIGGER AS $$ BEGIN NEW.UPDATED_AT = NOW();
+RETURN NEW;
 END;
-$$      LANGUAGE 'plpgsql';
- 
+$$ LANGUAGE 'plpgsql';
 -- Apply trigger to all tables with updated_at
-CREATE  TRIGGER UPDATE_USERS_UPDATED_AT BEFORE UPDATE ON USERS FOR EACH ROW EXECUTE
-
-FUNCTION UPDATE_UPDATED_AT_COLUMN(
-);
-CREATE  TRIGGER UPDATE_PROJECTS_UPDATED_AT BEFORE UPDATE ON PROJECTS FOR EACH ROW EXECUTE
-
-FUNCTION UPDATE_UPDATED_AT_COLUMN(
-);
-CREATE  TRIGGER UPDATE_BOARDS_UPDATED_AT BEFORE UPDATE ON BOARDS FOR EACH ROW EXECUTE
-
-FUNCTION UPDATE_UPDATED_AT_COLUMN(
-);
-CREATE  TRIGGER UPDATE_COLUMNS_UPDATED_AT BEFORE UPDATE ON BOARD_COLUMNS FOR EACH ROW EXECUTE
-
-FUNCTION UPDATE_UPDATED_AT_COLUMN(
-);
-CREATE  TRIGGER UPDATE_TASKS_UPDATED_AT BEFORE UPDATE ON TASKS FOR EACH ROW EXECUTE
-
-FUNCTION UPDATE_UPDATED_AT_COLUMN(
-);
-CREATE  TRIGGER UPDATE_COMMENTS_UPDATED_AT BEFORE UPDATE ON COMMENTS FOR EACH ROW EXECUTE
-
-FUNCTION UPDATE_UPDATED_AT_COLUMN(
-);
- 
+CREATE TRIGGER UPDATE_USERS_UPDATED_AT BEFORE
+UPDATE ON USERS FOR EACH ROW EXECUTE FUNCTION UPDATE_UPDATED_AT_COLUMN();
+CREATE TRIGGER UPDATE_PROJECTS_UPDATED_AT BEFORE
+UPDATE ON PROJECTS FOR EACH ROW EXECUTE FUNCTION UPDATE_UPDATED_AT_COLUMN();
+CREATE TRIGGER UPDATE_BOARDS_UPDATED_AT BEFORE
+UPDATE ON BOARDS FOR EACH ROW EXECUTE FUNCTION UPDATE_UPDATED_AT_COLUMN();
+CREATE TRIGGER UPDATE_COLUMNS_UPDATED_AT BEFORE
+UPDATE ON BOARD_COLUMNS FOR EACH ROW EXECUTE FUNCTION UPDATE_UPDATED_AT_COLUMN();
+CREATE TRIGGER UPDATE_TASKS_UPDATED_AT BEFORE
+UPDATE ON TASKS FOR EACH ROW EXECUTE FUNCTION UPDATE_UPDATED_AT_COLUMN();
+CREATE TRIGGER UPDATE_COMMENTS_UPDATED_AT BEFORE
+UPDATE ON COMMENTS FOR EACH ROW EXECUTE FUNCTION UPDATE_UPDATED_AT_COLUMN();
 -- =============================================
 -- MOVE TASK ATOMIC FUNCTION
 -- =============================================
-CREATE  OR REPLACE
-
-FUNCTION MOVE_TASK_ATOMIC(
-    TASK_UUID UUID,
-    NEW_COLUMN UUID,
-    NEW_POS INT
-) RETURNS VOID AS
-    $$      DECLARE OLD_COLUMN UUID;
-    OLD_POS INT;
+CREATE OR REPLACE FUNCTION MOVE_TASK_ATOMIC(
+        TASK_UUID UUID,
+        NEW_COLUMN UUID,
+        NEW_POS INT
+    ) RETURNS VOID AS $$
+DECLARE OLD_COLUMN UUID;
+OLD_POS INT;
 BEGIN
-    SELECT
-        COLUMN_ID,
-        POSITION INTO OLD_COLUMN,
-        OLD_POS
-    FROM
-        TASKS
-    WHERE
-        ID = TASK_UUID FOR UPDATE;
-    IF OLD_COLUMN = NEW_COLUMN THEN
- 
-        -- Reorder within same column
-        IF OLD_POS < NEW_POS THEN
- 
-            -- task moved down
-            UPDATE TASKS
-            SET
-                POSITION = POSITION - 1
-            WHERE
-                COLUMN_ID = NEW_COLUMN
-                AND POSITION > OLD_POS
-                AND POSITION <= NEW_POS;
-        ELSE
- 
-            -- task moved up
-            UPDATE TASKS
-            SET
-                POSITION = POSITION + 1
-            WHERE
-                COLUMN_ID = NEW_COLUMN
-                AND POSITION >= NEW_POS
-                AND POSITION < OLD_POS;
-        END IF;
-        UPDATE TASKS
-        SET
-            POSITION = NEW_POS
-        WHERE
-            ID = TASK_UUID;
-    ELSE
- 
-        -- Moving across columns
-        -- decrement positions in old column
-        UPDATE TASKS
-        SET
-            POSITION = POSITION - 1
-        WHERE
-            COLUMN_ID = OLD_COLUMN
-            AND POSITION > OLD_POS;
- 
-        -- increment positions in new column
-        UPDATE TASKS
-        SET
-            POSITION = POSITION + 1
-        WHERE
-            COLUMN_ID = NEW_COLUMN
-            AND POSITION >= NEW_POS;
- 
-        -- move task
-        UPDATE TASKS
-        SET
-            COLUMN_ID = NEW_COLUMN,
-            POSITION = NEW_POS
-        WHERE
-            ID = TASK_UUID;
-    END IF;
+SELECT COLUMN_ID,
+    POSITION INTO OLD_COLUMN,
+    OLD_POS
+FROM TASKS
+WHERE ID = TASK_UUID FOR
+UPDATE;
+IF OLD_COLUMN = NEW_COLUMN THEN -- Reorder within same column
+IF OLD_POS < NEW_POS THEN -- task moved down
+UPDATE TASKS
+SET POSITION = POSITION - 1
+WHERE COLUMN_ID = NEW_COLUMN
+    AND POSITION > OLD_POS
+    AND POSITION <= NEW_POS;
+ELSE -- task moved up
+UPDATE TASKS
+SET POSITION = POSITION + 1
+WHERE COLUMN_ID = NEW_COLUMN
+    AND POSITION >= NEW_POS
+    AND POSITION < OLD_POS;
+END IF;
+UPDATE TASKS
+SET POSITION = NEW_POS
+WHERE ID = TASK_UUID;
+ELSE -- Moving across columns
+-- decrement positions in old column
+UPDATE TASKS
+SET POSITION = POSITION - 1
+WHERE COLUMN_ID = OLD_COLUMN
+    AND POSITION > OLD_POS;
+-- increment positions in new column
+UPDATE TASKS
+SET POSITION = POSITION + 1
+WHERE COLUMN_ID = NEW_COLUMN
+    AND POSITION >= NEW_POS;
+-- move task
+UPDATE TASKS
+SET COLUMN_ID = NEW_COLUMN,
+    POSITION = NEW_POS
+WHERE ID = TASK_UUID;
+END IF;
 END;
-
-$$      LANGUAGE PLPGSQL;
+$$ LANGUAGE PLPGSQL;
+-- =============================================
+-- STORED PROCEDURES
+-- =============================================
+-- Function to create project with owner as member in a transaction
+CREATE OR REPLACE FUNCTION CREATE_PROJECT_WITH_OWNER(
+        P_NAME TEXT,
+        P_OWNER_ID TEXT,
+        P_DESCRIPTION TEXT DEFAULT NULL,
+        P_COLOR_HEX TEXT DEFAULT '#1E3A5F',
+        P_ICON_NAME TEXT DEFAULT 'folder'
+    ) RETURNS JSON AS $$
+DECLARE V_PROJECT_ID UUID;
+V_PROJECT_DATA JSON;
+BEGIN -- Start transaction
+BEGIN -- Insert project
+INSERT INTO PROJECTS (
+        NAME,
+        DESCRIPTION,
+        OWNER_ID,
+        COLOR_HEX,
+        ICON_NAME,
+        IS_ARCHIVED
+    )
+VALUES (
+        P_NAME,
+        P_DESCRIPTION,
+        P_OWNER_ID,
+        P_COLOR_HEX,
+        P_ICON_NAME,
+        FALSE
+    )
+RETURNING ID INTO V_PROJECT_ID;
+-- Add owner as project member
+INSERT INTO PROJECT_MEMBERS (
+        PROJECT_ID,
+        USER_ID,
+        ROLE
+    )
+VALUES (
+        V_PROJECT_ID,
+        P_OWNER_ID,
+        'owner'
+    );
+-- Get the created project data
+SELECT JSON_BUILD_OBJECT(
+        'id',
+        P.ID,
+        'name',
+        P.NAME,
+        'description',
+        P.DESCRIPTION,
+        'owner_id',
+        P.OWNER_ID,
+        'color_hex',
+        P.COLOR_HEX,
+        'icon_name',
+        P.ICON_NAME,
+        'is_archived',
+        P.IS_ARCHIVED,
+        'created_at',
+        P.CREATED_AT,
+        'updated_at',
+        P.UPDATED_AT
+    ) INTO V_PROJECT_DATA
+FROM PROJECTS P
+WHERE P.ID = V_PROJECT_ID;
+RETURN V_PROJECT_DATA;
+EXCEPTION
+WHEN OTHERS THEN -- Rollback transaction on error
+RAISE EXCEPTION 'Failed to create project: %',
+SQLERRM;
+END;
+END;
+$$ LANGUAGE PLPGSQL SECURITY DEFINER;

@@ -1,85 +1,141 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/models/project_model.dart';
 import '../data/models/project_member_model.dart';
-import '../data/models/user_model.dart';
-import '../data/repositories/project_repository.dart';
 import 'auth_provider.dart';
 
-// Repository Provider
-final projectRepositoryProvider = Provider<ProjectRepository>((ref) {
-  return ProjectRepositoryImpl();
+// --- REPOSITORY ---
+class ProjectRepository {
+  final SupabaseClient _client;
+  ProjectRepository(this._client);
+
+  Future<List<ProjectModel>> getProjects(String userId) async {
+    try {
+      final data = await _client
+          .from('projects')
+          .select()
+          .eq('is_archived', false)
+          .order('created_at', ascending: false);
+      return data.map((json) => ProjectModel.fromJson(json)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<ProjectModel?> getProject(String projectId) async {
+    try {
+      final data =
+          await _client.from('projects').select().eq('id', projectId).single();
+      return ProjectModel.fromJson(data);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<List<ProjectMemberModel>> getProjectMembers(String projectId) async {
+    try {
+      final List<dynamic> data = await _client
+          .from('project_members')
+          .select()
+          .eq('project_id', projectId);
+
+      // Sửa lỗi: Không dùng 'const' ở đây vì name là giá trị động
+      return data.map((json) {
+        return ProjectMemberModel(
+          id: json['id'] ?? '',
+          projectId: json['project_id'] ?? '',
+          userId: json['user_id'] ?? '',
+          role: ProjectMemberModel.fromJson(json)
+              .role, // Sử dụng logic parse role từ model
+          name: 'User ' +
+              (json['user_id'] as String).substring(0, 4), // Giá trị động
+          email: 'user@example.com',
+          // avatarUrl để null hoặc giá trị mặc định
+        );
+      }).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<ProjectModel?> createProject(ProjectModel project) async {
+    try {
+      final data = await _client.rpc('create_project_with_owner', params: {
+        'p_name': project.name,
+        'p_description': project.description,
+        'p_color_hex': project.colorHex,
+        'p_icon_name': project.iconName,
+        'p_owner_id': project.ownerId,
+      });
+      return ProjectModel.fromJson(data);
+    } catch (e) {
+      debugPrint('Error creating project: $e');
+      return null;
+    }
+  }
+
+  Future<String> addMember(
+      String projectId, String email, MemberRole role) async {
+    try {
+      final response = await _client.rpc('add_member_by_email', params: {
+        'p_project_id': projectId,
+        'p_email': email,
+        'p_role': role.name,
+      });
+      return response as String;
+    } catch (e) {
+      return 'error';
+    }
+  }
+
+  Future<void> deleteProject(String projectId) async {
+    await _client.from('projects').delete().eq('id', projectId);
+  }
+}
+
+// --- PROVIDERS ---
+
+final projectRepositoryProvider = Provider((ref) {
+  return ProjectRepository(Supabase.instance.client);
 });
 
-// Projects List Provider
-final projectsProvider = FutureProvider<List<ProjectModel>>((ref) async {
+final projectNotifierProvider =
+    StateNotifierProvider<ProjectNotifier, AsyncValue<List<ProjectModel>>>(
+        (ref) {
   final authState = ref.watch(authStateProvider);
-
-  return authState.when(
-    data: (user) async {
-      if (user == null) return [];
-      final result =
-          await ref.read(projectRepositoryProvider).getProjects(user.id);
-      return result.fold((l) => [], (r) => r);
-    },
-    loading: () => [],
-    error: (_, __) => [],
-  );
+  return ProjectNotifier(
+      ref.watch(projectRepositoryProvider), authState.value?.id);
 });
 
-// Projects Stream Provider (Real-time)
-final projectsStreamProvider = StreamProvider<List<ProjectModel>>((ref) {
-  final authState = ref.watch(authStateProvider);
-
-  return authState.when(
-    data: (user) {
-      if (user == null) return Stream.value([]);
-      return ref.read(projectRepositoryProvider).watchProjects(user.id);
-    },
-    loading: () => Stream.value([]),
-    error: (_, __) => Stream.value([]),
-  );
+final projectProvider = FutureProvider.family<ProjectModel?, String>((ref, id) {
+  return ref.watch(projectRepositoryProvider).getProject(id);
 });
 
-// Single Project Provider
-final projectProvider =
-    FutureProvider.family<ProjectModel?, String>((ref, projectId) async {
-  final result =
-      await ref.read(projectRepositoryProvider).getProject(projectId);
-  return result.fold((l) => null, (r) => r);
-});
-
-// Project Members Provider
 final projectMembersProvider =
-    FutureProvider.family<List<UserModel>, String>((ref, projectId) async {
-  final result =
-      await ref.read(projectRepositoryProvider).getProjectMembers(projectId);
-  return result.fold((l) => [], (r) => r);
+    FutureProvider.family<List<ProjectMemberModel>, String>((ref, id) {
+  return ref.watch(projectRepositoryProvider).getProjectMembers(id);
 });
 
-// Selected Project Provider
-final selectedProjectProvider = StateProvider<ProjectModel?>((ref) => null);
+// --- NOTIFIER ---
 
-// Project Notifier
 class ProjectNotifier extends StateNotifier<AsyncValue<List<ProjectModel>>> {
-  final ProjectRepository _repository;
+  final ProjectRepository _repo;
   final String? _userId;
 
-  ProjectNotifier(this._repository, this._userId)
+  ProjectNotifier(this._repo, this._userId)
       : super(const AsyncValue.loading()) {
-    if (_userId != null) {
-      loadProjects();
-    }
+    if (_userId != null) loadProjects();
   }
 
   Future<void> loadProjects() async {
     if (_userId == null) return;
-
-    state = const AsyncValue.loading();
-    final result = await _repository.getProjects(_userId!);
-    state = result.fold(
-      (failure) => AsyncValue.error(failure.message, StackTrace.current),
-      (projects) => AsyncValue.data(projects),
-    );
+    try {
+      final projects = await _repo.getProjects(_userId!);
+      state = AsyncValue.data(projects);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
   }
 
   Future<ProjectModel?> createProject({
@@ -90,93 +146,37 @@ class ProjectNotifier extends StateNotifier<AsyncValue<List<ProjectModel>>> {
   }) async {
     if (_userId == null) return null;
 
-    final project = ProjectModel(
+    final newProject = ProjectModel(
       id: '',
       name: name,
       description: description,
-      ownerId: _userId!,
       colorHex: colorHex,
       iconName: iconName,
+      ownerId: _userId!,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
 
-    final result = await _repository.createProject(project);
-    return result.fold(
-      (failure) => null,
-      (createdProject) {
-        state.whenData((projects) {
-          state = AsyncValue.data([createdProject, ...projects]);
-        });
-        return createdProject;
-      },
-    );
-  }
-
-  Future<bool> updateProject(ProjectModel project) async {
-    final result = await _repository.updateProject(project);
-    return result.fold(
-      (failure) => false,
-      (updatedProject) {
-        state.whenData((projects) {
-          final index = projects.indexWhere((p) => p.id == project.id);
-          if (index != -1) {
-            final updatedList = [...projects];
-            updatedList[index] = updatedProject;
-            state = AsyncValue.data(updatedList);
-          }
-        });
-        return true;
-      },
-    );
+    final result = await _repo.createProject(newProject);
+    if (result != null) {
+      loadProjects();
+    }
+    return result;
   }
 
   Future<bool> deleteProject(String projectId) async {
-    final result = await _repository.deleteProject(projectId);
-    return result.fold(
-      (failure) => false,
-      (_) {
-        state.whenData((projects) {
-          state = AsyncValue.data(
-            projects.where((p) => p.id != projectId).toList(),
-          );
-        });
-        return true;
-      },
-    );
-  }
-
-  Future<bool> archiveProject(String projectId) async {
-    final result = await _repository.archiveProject(projectId);
-    return result.fold(
-      (failure) => false,
-      (_) {
-        state.whenData((projects) {
-          state = AsyncValue.data(
-            projects.where((p) => p.id != projectId).toList(),
-          );
-        });
-        return true;
-      },
-    );
+    try {
+      await _repo.deleteProject(projectId);
+      loadProjects();
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<bool> addMember(
       String projectId, String email, MemberRole role) async {
-    final result = await _repository.addMember(projectId, email, role);
-    return result.isRight();
-  }
-
-  Future<bool> removeMember(String projectId, String userId) async {
-    final result = await _repository.removeMember(projectId, userId);
-    return result.isRight();
+    final result = await _repo.addMember(projectId, email, role);
+    return result == 'success';
   }
 }
-
-final projectNotifierProvider =
-    StateNotifierProvider<ProjectNotifier, AsyncValue<List<ProjectModel>>>(
-        (ref) {
-  final authState = ref.watch(authStateProvider);
-  final userId = authState.valueOrNull?.id;
-  return ProjectNotifier(ref.watch(projectRepositoryProvider), userId);
-});

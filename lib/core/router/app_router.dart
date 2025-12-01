@@ -4,10 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
 import '../../ui/screens/auth/login_screen.dart';
 import '../../ui/screens/auth/register_screen.dart';
+import '../../ui/screens/auth/magic_link_screen.dart';
+import '../../ui/screens/auth/forgot_password_screen.dart';
 import '../../ui/screens/home/home_screen.dart';
 import '../../ui/screens/project/project_screen.dart';
 import '../../ui/screens/board/board_screen.dart';
 import '../../ui/screens/task/task_detail_screen.dart';
+import '../../ui/screens/calendar/calendar_screen.dart';
+import '../../ui/screens/settings/settings_screen.dart';
+import '../../ui/screens/profile/profile_screen.dart';
+import '../../ui/screens/notifications/notifications_screen.dart';
+import '../../ui/screens/tasks/my_tasks_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -18,7 +25,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = authState.valueOrNull != null;
       final isAuthRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register' ||
-          state.matchedLocation == '/forgot-password';
+          state.matchedLocation == '/forgot-password' ||
+          state.matchedLocation == '/magic-link';
 
       if (!isLoggedIn && !isAuthRoute) {
         return '/login';
@@ -45,9 +53,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/forgot-password',
         name: 'forgot-password',
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('Forgot Password')),
-        ),
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/magic-link',
+        name: 'magic-link',
+        builder: (context, state) {
+          final email = state.extra as String? ?? '';
+          return MagicLinkScreen(email: email);
+        },
       ),
 
       // Main Routes
@@ -92,37 +106,27 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notifications',
         name: 'notifications',
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('Notifications')),
-        ),
+        builder: (context, state) => const NotificationsScreen(),
       ),
       GoRoute(
         path: '/profile',
         name: 'profile',
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('Profile')),
-        ),
+        builder: (context, state) => const ProfileScreen(),
       ),
       GoRoute(
         path: '/settings',
         name: 'settings',
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('Settings')),
-        ),
+        builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
         path: '/tasks',
         name: 'tasks',
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('My Tasks')),
-        ),
+        builder: (context, state) => const MyTasksScreen(),
       ),
       GoRoute(
         path: '/calendar',
         name: 'calendar',
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('Calendar')),
-        ),
+        builder: (context, state) => const CalendarScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
@@ -132,4 +136,3 @@ final routerProvider = Provider<GoRouter>((ref) {
     ),
   );
 });
-

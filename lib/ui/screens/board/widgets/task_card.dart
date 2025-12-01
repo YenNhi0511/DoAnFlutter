@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/utils/extensions.dart';
@@ -186,12 +187,27 @@ class TaskCard extends StatelessWidget {
                                 height: 24,
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(4),
-                                  child: Image.network(
-                                    url,
+                                  child: CachedNetworkImage(
+                                    imageUrl: url,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(
-                                        Iconsax.attach_circle,
-                                        size: 14),
+                                    memCacheWidth: 24,
+                                    memCacheHeight: 24,
+                                    placeholder: (_, __) => Container(
+                                      color: Colors.grey[200],
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 12,
+                                          height: 12,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    errorWidget: (_, __, ___) => const Icon(
+                                      Iconsax.attach_circle,
+                                      size: 14,
+                                    ),
                                   ),
                                 ),
                               ),

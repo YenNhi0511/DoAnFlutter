@@ -1,208 +1,130 @@
-import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
+import '../../core/constants/app_colors.dart';
 
-enum TaskPriority {
-  low,
-  medium,
-  high,
-  urgent,
-}
+enum TaskPriority { low, medium, high, urgent }
 
-class TaskModel extends Equatable {
+class TaskModel {
   final String id;
   final String columnId;
-  final String boardId;
+  final String? boardId;
   final String projectId;
   final String title;
   final String? description;
-  final int position;
   final TaskPriority priority;
   final DateTime? dueDate;
-  final String? assigneeId;
-  final String createdById;
-  final List<String> labelIds;
   final List<String> attachmentUrls;
-  final bool isCompleted;
-  final DateTime? completedAt;
+  final String createdById;
+  final int position;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isCompleted;
 
-  const TaskModel({
+  // --- CÁC TRƯỜNG MỚI ĐƯỢC THÊM ---
+  final List<String> labelIds; // Danh sách ID nhãn
+  final String? assigneeId; // ID người được giao việc
+
+  TaskModel({
     required this.id,
     required this.columnId,
-    required this.boardId,
+    this.boardId,
     required this.projectId,
     required this.title,
     this.description,
-    required this.position,
-    this.priority = TaskPriority.medium,
+    required this.priority,
     this.dueDate,
-    this.assigneeId,
+    required this.attachmentUrls,
     required this.createdById,
-    this.labelIds = const [],
-    this.attachmentUrls = const [],
-    this.isCompleted = false,
-    this.completedAt,
+    required this.position,
     required this.createdAt,
     required this.updatedAt,
+    this.isCompleted = false,
+    this.labelIds = const [], // Mặc định rỗng
+    this.assigneeId, // Có thể null
   });
 
+  // Chuyển đổi từ JSON (Database) sang Object
   factory TaskModel.fromJson(Map<String, dynamic> json) {
     return TaskModel(
-      id: json['id'] as String,
-      columnId: json['column_id'] as String,
-      boardId: json['board_id'] as String,
-      projectId: json['project_id'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String?,
-      position: json['position'] as int? ?? 0,
-      priority: _parsePriority(json['priority'] as String?),
-      dueDate: json['due_date'] != null
-          ? DateTime.parse(json['due_date'] as String)
-          : null,
-      assigneeId: json['assignee_id'] as String?,
-      createdById: json['created_by_id'] as String,
-      labelIds: (json['label_ids'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      attachmentUrls: (json['attachment_urls'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      isCompleted: json['is_completed'] as bool? ?? false,
-      completedAt: json['completed_at'] != null
-          ? DateTime.parse(json['completed_at'] as String)
-          : null,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      id: json['id'] ?? '',
+      columnId: json['column_id'] ?? '',
+      boardId: json['board_id'],
+      projectId: json['project_id'] ?? '',
+      title: json['title'] ?? 'No Title',
+      description: json['description'],
+      priority: _parsePriority(json['priority']),
+      dueDate:
+          json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
+      attachmentUrls: List<String>.from(json['attachment_urls'] ?? []),
+      createdById: json['created_by_id'] ?? '',
+      position: json['position'] ?? 0,
+      createdAt:
+          DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now(),
+      updatedAt:
+          DateTime.tryParse(json['updated_at'].toString()) ?? DateTime.now(),
+      isCompleted: json['is_completed'] ?? false,
+
+      // Ánh xạ các trường mới từ JSON
+      labelIds: List<String>.from(json['label_ids'] ?? []),
+      assigneeId: json['assignee_id'],
     );
   }
 
-  static TaskPriority _parsePriority(String? priority) {
-    switch (priority) {
-      case 'low':
-        return TaskPriority.low;
-      case 'high':
-        return TaskPriority.high;
-      case 'urgent':
-        return TaskPriority.urgent;
-      default:
-        return TaskPriority.medium;
-    }
-  }
-
-  String get priorityString {
-    switch (priority) {
-      case TaskPriority.low:
-        return 'low';
-      case TaskPriority.medium:
-        return 'medium';
-      case TaskPriority.high:
-        return 'high';
-      case TaskPriority.urgent:
-        return 'urgent';
-    }
-  }
-
+  // Chuyển đổi từ Object sang JSON (để gửi lên Database)
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
       'column_id': columnId,
       'board_id': boardId,
       'project_id': projectId,
       'title': title,
       'description': description,
-      'position': position,
-      'priority': priorityString,
+      'priority': priority.name,
       'due_date': dueDate?.toIso8601String(),
-      'assignee_id': assigneeId,
-      'created_by_id': createdById,
-      'label_ids': labelIds,
       'attachment_urls': attachmentUrls,
+      'created_by_id': createdById,
+      'position': position,
       'is_completed': isCompleted,
-      'completed_at': completedAt?.toIso8601String(),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
-    };
-  }
+      'updated_at': DateTime.now().toIso8601String(),
 
-  Map<String, dynamic> toInsertJson() {
-    return {
-      'column_id': columnId,
-      'board_id': boardId,
-      'project_id': projectId,
-      'title': title,
-      'description': description,
-      'position': position,
-      'priority': priorityString,
-      'due_date': dueDate?.toIso8601String(),
-      'assignee_id': assigneeId,
-      'created_by_id': createdById,
+      // Gửi các trường mới lên Database
       'label_ids': labelIds,
-      'attachment_urls': attachmentUrls,
-      'is_completed': isCompleted,
+      'assignee_id': assigneeId,
     };
   }
 
   TaskModel copyWith({
-    String? id,
-    String? columnId,
-    String? boardId,
-    String? projectId,
     String? title,
     String? description,
-    int? position,
     TaskPriority? priority,
     DateTime? dueDate,
-    String? assigneeId,
-    String? createdById,
-    List<String>? labelIds,
-    List<String>? attachmentUrls,
     bool? isCompleted,
-    DateTime? completedAt,
-    DateTime? createdAt,
     DateTime? updatedAt,
+    List<String>? labelIds,
+    String? assigneeId,
   }) {
     return TaskModel(
-      id: id ?? this.id,
-      columnId: columnId ?? this.columnId,
-      boardId: boardId ?? this.boardId,
-      projectId: projectId ?? this.projectId,
+      id: id,
+      columnId: columnId,
+      boardId: boardId,
+      projectId: projectId,
       title: title ?? this.title,
       description: description ?? this.description,
-      position: position ?? this.position,
       priority: priority ?? this.priority,
       dueDate: dueDate ?? this.dueDate,
-      assigneeId: assigneeId ?? this.assigneeId,
-      createdById: createdById ?? this.createdById,
-      labelIds: labelIds ?? this.labelIds,
-      attachmentUrls: attachmentUrls ?? this.attachmentUrls,
-      isCompleted: isCompleted ?? this.isCompleted,
-      completedAt: completedAt ?? this.completedAt,
-      createdAt: createdAt ?? this.createdAt,
+      attachmentUrls: attachmentUrls,
+      createdById: createdById,
+      position: position,
+      createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      isCompleted: isCompleted ?? this.isCompleted,
+      labelIds: labelIds ?? this.labelIds,
+      assigneeId: assigneeId ?? this.assigneeId,
     );
   }
 
-  @override
-  List<Object?> get props => [
-        id,
-        columnId,
-        boardId,
-        projectId,
-        title,
-        description,
-        position,
-        priority,
-        dueDate,
-        assigneeId,
-        createdById,
-        labelIds,
-        attachmentUrls,
-        isCompleted,
-        completedAt,
-        createdAt,
-        updatedAt,
-      ];
+  static TaskPriority _parsePriority(String? value) {
+    return TaskPriority.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => TaskPriority.medium,
+    );
+  }
 }
-

@@ -33,6 +33,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _login() async {
+    // 1. Ẩn bàn phím ngay khi bấm Login để tránh lỗi layout
+    FocusScope.of(context).unfocus();
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -42,17 +45,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _passwordController.text,
         );
 
+    // 2. QUAN TRỌNG: Kiểm tra mounted trước khi setState hoặc dùng context sau await
+    // Nếu màn hình đã bị đóng (người dùng back ra), dừng lại để tránh crash.
+    if (!mounted) return;
+
     setState(() => _isLoading = false);
 
-    if (success && mounted) {
+    if (success) {
       context.go('/home');
-    } else if (mounted) {
+    } else {
+      // Xử lý hiển thị lỗi
       final errorObj = ref.read(authNotifierProvider).error;
       String message = AppStrings.errorAuth;
-      String? code;
+
+      // Không cần biến code nếu không dùng đến
       if (errorObj is Failure) {
         message = errorObj.message;
-        code = errorObj.code;
       } else if (errorObj != null) {
         message = errorObj.toString();
       }
@@ -60,29 +68,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final snackBar = SnackBar(
         content: Text(message),
         backgroundColor: AppColors.error,
-        action: code == 'email-not-confirmed'
-            ? SnackBarAction(
-                label: 'Resend',
-                textColor: Colors.white,
-                onPressed: () async {
-                  // attempt to resend confirmation
-                  final email = _emailController.text.trim();
-                  if (email.isEmpty) return;
-                  setState(() => _isLoading = true);
-                  final ok = await ref
-                      .read(authNotifierProvider.notifier)
-                      .resendConfirmation(email);
-                  setState(() => _isLoading = false);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(ok
-                          ? 'Confirmation link sent — check your email.'
-                          : 'Failed to send confirmation link.'),
-                    ),
-                  );
-                },
-              )
-            : null,
+        behavior: SnackBarBehavior.floating, // Hiển thị snackbar nổi đẹp hơn
       );
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
@@ -93,175 +79,159 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
 
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [AppColors.backgroundDark, AppColors.surfaceDark]
-                : [AppColors.background, AppColors.surface],
+    // 3. Bọc GestureDetector để ẩn bàn phím khi chạm ra ngoài
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [AppColors.backgroundDark, AppColors.surfaceDark]
+                  : [AppColors.background, AppColors.surface],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSizes.lg),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: size.height * 0.08),
-
-                  // Logo & Title
-                  Center(
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(AppSizes.md),
-                          decoration: BoxDecoration(
-                            gradient: AppColors.primaryGradient,
-                            borderRadius:
-                                BorderRadius.circular(AppSizes.radiusLg),
-                            boxShadow: AppColors.elevatedShadow,
-                          ),
-                          child: const Icon(
-                            Iconsax.task_square,
-                            size: 48,
-                            color: Colors.white,
-                          ),
-                        ).animate().scale(
-                              duration: 600.ms,
-                              curve: Curves.elasticOut,
-                            ),
-                        const SizedBox(height: AppSizes.md),
-                        Text(
-                          AppStrings.appName,
-                          style: Theme.of(context)
-                              .textTheme
-                              .displaySmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? AppColors.textPrimaryDark
-                                    : AppColors.textPrimary,
-                              ),
-                        ).animate().fadeIn(delay: 200.ms),
-                        const SizedBox(height: AppSizes.xs),
-                        Text(
-                          AppStrings.appTagline,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ).animate().fadeIn(delay: 300.ms),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: size.height * 0.06),
-
-                  // Welcome Text
-                  Text(
-                    'Welcome Back',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ).animate().fadeIn(delay: 400.ms).slideX(begin: -0.1),
-                  const SizedBox(height: AppSizes.xs),
-                  Text(
-                    'Sign in to continue managing your projects',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ).animate().fadeIn(delay: 500.ms).slideX(begin: -0.1),
-
-                  const SizedBox(height: AppSizes.xl),
-
-                  // Email Field
-                  AppTextField(
-                    label: AppStrings.email,
-                    hint: 'Enter your email',
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    prefixIcon: Iconsax.sms,
-                    validator: Validators.email,
-                  ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1),
-
-                  const SizedBox(height: AppSizes.md),
-
-                  // Password Field
-                  AppTextField(
-                    label: AppStrings.password,
-                    hint: 'Enter your password',
-                    controller: _passwordController,
-                    obscureText: true,
-                    textInputAction: TextInputAction.done,
-                    prefixIcon: Iconsax.lock,
-                    validator: Validators.password,
-                    onSubmitted: (_) => _login(),
-                  ).animate().fadeIn(delay: 700.ms).slideY(begin: 0.1),
-
-                  const SizedBox(height: AppSizes.sm),
-
-                  // Forgot Password
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => context.push('/forgot-password'),
-                      child: const Text(AppStrings.forgotPassword),
-                    ),
-                  ).animate().fadeIn(delay: 800.ms),
-
-                  const SizedBox(height: AppSizes.lg),
-
-                  // Login Button
-                  AppButton(
-                    text: AppStrings.login,
-                    onPressed: _login,
-                    isLoading: _isLoading,
-                  ).animate().fadeIn(delay: 900.ms).slideY(begin: 0.1),
-
-                  const SizedBox(height: AppSizes.lg),
-
-                  // Divider
-                  Row(
-                    children: [
-                      Expanded(
-                          child: Divider(
-                              color: AppColors.textTertiary.withOpacity(0.3))),
-                      Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: AppSizes.md),
-                        child: Text(
-                          AppStrings.orContinueWith,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                      Expanded(
-                          child: Divider(
-                              color: AppColors.textTertiary.withOpacity(0.3))),
-                    ],
-                  ).animate().fadeIn(delay: 1000.ms),
-
-                  const SizedBox(height: AppSizes.lg),
-
-                  // Google Sign In removed — Supabase Social sign-in not configured for this app.
-
-                  const SizedBox(height: AppSizes.xl),
-
-                  // Sign Up Link
-                  Row(
+          child: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSizes.lg),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Logo & Title
+                      Center(
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(AppSizes.md),
+                              decoration: BoxDecoration(
+                                gradient: AppColors.primaryGradient,
+                                borderRadius:
+                                    BorderRadius.circular(AppSizes.radiusLg),
+                                boxShadow: AppColors.elevatedShadow,
+                              ),
+                              child: const Icon(
+                                Iconsax.task_square,
+                                size: 48,
+                                color: Colors.white,
+                              ),
+                            ).animate().scale(
+                                  duration: 600.ms,
+                                  curve: Curves.elasticOut,
+                                ),
+                            const SizedBox(height: AppSizes.md),
+                            Text(
+                              AppStrings.appName,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .displaySmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? AppColors.textPrimaryDark
+                                        : AppColors.textPrimary,
+                                  ),
+                            ).animate().fadeIn(delay: 200.ms),
+                            const SizedBox(height: AppSizes.xs),
+                            Text(
+                              AppStrings.appTagline,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ).animate().fadeIn(delay: 300.ms),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: size.height * 0.06),
+
+                      // Welcome Text
                       Text(
-                        AppStrings.dontHaveAccount,
+                        'Welcome Back',
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ).animate().fadeIn(delay: 400.ms).slideX(begin: -0.1),
+                      const SizedBox(height: AppSizes.xs),
+                      Text(
+                        'Sign in to continue managing your projects',
                         style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      TextButton(
-                        onPressed: () => context.push('/register'),
-                        child: const Text(AppStrings.signUp),
-                      ),
+                      ).animate().fadeIn(delay: 500.ms).slideX(begin: -0.1),
+
+                      const SizedBox(height: AppSizes.xl),
+
+                      // Email Field
+                      AppTextField(
+                        label: AppStrings.email,
+                        hint: 'Enter your email',
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        prefixIcon: Iconsax.sms,
+                        validator: Validators.email,
+                      ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1),
+
+                      const SizedBox(height: AppSizes.md),
+
+                      // Password Field
+                      AppTextField(
+                        label: AppStrings.password,
+                        hint: 'Enter your password',
+                        controller: _passwordController,
+                        obscureText: true,
+                        textInputAction: TextInputAction.done,
+                        prefixIcon: Iconsax.lock,
+                        validator: Validators.password,
+                        onSubmitted: (_) => _login(),
+                      ).animate().fadeIn(delay: 700.ms).slideY(begin: 0.1),
+
+                      const SizedBox(height: AppSizes.sm),
+
+                      // Forgot Password
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => context.push('/forgot-password'),
+                          child: const Text(AppStrings.forgotPassword),
+                        ),
+                      ).animate().fadeIn(delay: 800.ms),
+
+                      const SizedBox(height: AppSizes.lg),
+
+                      // Login Button
+                      AppButton(
+                        text: AppStrings.login,
+                        onPressed: _login,
+                        isLoading: _isLoading,
+                      ).animate().fadeIn(delay: 900.ms).slideY(begin: 0.1),
+
+                      const SizedBox(height: AppSizes.xl),
+
+                      // Sign Up Link
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            AppStrings.dontHaveAccount,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          TextButton(
+                            onPressed: () => context.push('/register'),
+                            child: const Text(AppStrings.signUp),
+                          ),
+                        ],
+                      ).animate().fadeIn(delay: 1200.ms),
                     ],
-                  ).animate().fadeIn(delay: 1200.ms),
-                ],
+                  ),
+                ),
               ),
             ),
           ),

@@ -5,13 +5,9 @@ import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
-import '../../../core/constants/app_strings.dart';
-import '../../../core/utils/extensions.dart';
 import '../../../data/models/task_model.dart';
-import '../../../providers/auth_provider.dart';
 import '../../../providers/task_provider.dart';
-import '../../widgets/common/app_text_field.dart';
-import '../../widgets/common/user_avatar.dart';
+import '../../../providers/comment_provider.dart';
 
 class TaskDetailScreen extends ConsumerStatefulWidget {
   final String taskId;
@@ -23,566 +19,291 @@ class TaskDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
-  final _commentController = TextEditingController();
-  bool _isEditing = false;
   late TextEditingController _titleController;
-  late TextEditingController _descriptionController;
+  late TextEditingController _descController;
+  late TextEditingController _commentController;
+  bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController();
-    _descriptionController = TextEditingController();
+    _descController = TextEditingController();
+    _commentController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _commentController.dispose();
     _titleController.dispose();
-    _descriptionController.dispose();
+    _descController.dispose();
+    _commentController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final task = ref.watch(taskProvider(widget.taskId));
-    final comments = ref.watch(commentsStreamProvider(widget.taskId));
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Lấy thông tin task từ Provider
+    final taskAsync = ref.watch(taskProvider(widget.taskId));
+    // Lấy danh sách comment từ Provider (đã import comment_provider.dart)
+    final commentsAsync = ref.watch(commentsStreamProvider(widget.taskId));
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Iconsax.arrow_left),
-          onPressed: () => context.pop(),
-        ),
-        title: const Text('Task Details'),
+        title: const Text('Chi tiết công việc'),
         actions: [
-          if (!_isEditing)
-            IconButton(
-              icon: const Icon(Iconsax.edit),
-              onPressed: () {
-                final t = task.valueOrNull;
-                if (t != null) {
-                  _titleController.text = t.title;
-                  _descriptionController.text = t.description ?? '';
-                  setState(() => _isEditing = true);
-                }
-              },
-            ),
-          PopupMenuButton<String>(
-            icon: const Icon(Iconsax.more),
-            onSelected: (value) async {
-              if (value == 'delete') {
-                final confirmed = await _showDeleteConfirmation(context);
-                if (confirmed == true && mounted) {
-                  // TODO: Delete task
-                  context.pop();
-                }
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Iconsax.trash, size: 18, color: AppColors.error),
-                    SizedBox(width: 8),
-                    Text('Delete', style: TextStyle(color: AppColors.error)),
-                  ],
-                ),
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Iconsax.trash, color: Colors.red),
+            onPressed: () => _confirmDelete(context),
           ),
         ],
       ),
-      body: task.when(
-        data: (t) {
-          if (t == null) {
-            return const Center(child: Text('Task not found'));
+      body: taskAsync.when(
+        data: (task) {
+          if (task == null)
+            return const Center(child: Text('Không tìm thấy công việc'));
+
+          // Cập nhật giá trị vào controller nếu chưa ở chế độ chỉnh sửa
+          if (!_isEditing) {
+            _titleController.text = task.title;
+            _descController.text = task.description ?? '';
           }
 
-          final priorityColor = _getPriorityColor(t.priority);
-          final isOverdue =
-              t.dueDate != null && t.dueDate!.isOverdue && !t.isCompleted;
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSizes.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Tiêu đề Task
+                TextFormField(
+                  controller: _titleController,
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'Tiêu đề công việc',
+                  ),
+                  onChanged: (val) {
+                    // Đánh dấu là đang chỉnh sửa để không bị ghi đè khi rebuild
+                    _isEditing = true;
+                    // Bạn có thể gọi setState để hiển thị nút Lưu nếu muốn
+                    setState(() {});
+                  },
+                ),
 
-          return Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppSizes.md),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Priority & Status Row
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSizes.sm,
-                              vertical: AppSizes.xs,
-                            ),
-                            decoration: BoxDecoration(
-                              color: priorityColor.withOpacity(0.1),
-                              borderRadius:
-                                  BorderRadius.circular(AppSizes.radiusFull),
-                              border: Border.all(color: priorityColor),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  _getPriorityIcon(t.priority),
-                                  size: 14,
-                                  color: priorityColor,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  _getPriorityLabel(t.priority),
-                                  style: TextStyle(
-                                    color: priorityColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.sm),
-                          if (t.isCompleted)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSizes.sm,
-                                vertical: AppSizes.xs,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.success.withOpacity(0.1),
-                                borderRadius:
-                                    BorderRadius.circular(AppSizes.radiusFull),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Iconsax.tick_circle,
-                                    size: 14,
-                                    color: AppColors.success,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Completed',
-                                    style: TextStyle(
-                                      color: AppColors.success,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
+                const SizedBox(height: AppSizes.md),
 
-                      const SizedBox(height: AppSizes.md),
-
-                      // Title
-                      if (_isEditing)
-                        AppTextField(
-                          controller: _titleController,
-                          hint: 'Task title',
-                        )
-                      else
-                        Text(
-                          t.title,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                decoration: t.isCompleted
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                              ),
+                // 2. Ngày hết hạn & Priority (Chip)
+                Row(
+                  children: [
+                    if (task.dueDate != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border:
+                              Border.all(color: Colors.grey.withOpacity(0.3)),
                         ),
-
-                      const SizedBox(height: AppSizes.lg),
-
-                      // Due Date
-                      if (t.dueDate != null) ...[
-                        _buildInfoRow(
-                          context,
-                          icon: Iconsax.calendar,
-                          label: 'Due Date',
-                          value: DateFormat('EEEE, MMM dd, yyyy - HH:mm')
-                              .format(t.dueDate!),
-                          valueColor: isOverdue ? AppColors.error : null,
-                          isDark: isDark,
-                        ),
-                        const SizedBox(height: AppSizes.md),
-                      ],
-
-                      // Assignee
-                      _buildInfoRow(
-                        context,
-                        icon: Iconsax.user,
-                        label: 'Assignee',
-                        value: t.assigneeId ?? 'Unassigned',
-                        isDark: isDark,
-                        trailing: t.assigneeId != null
-                            ? const UserAvatar(name: 'User', size: 28)
-                            : TextButton(
-                                onPressed: () {
-                                  // TODO: Assign user
-                                },
-                                child: const Text('Assign'),
-                              ),
-                      ),
-
-                      const SizedBox(height: AppSizes.lg),
-                      const Divider(),
-                      const SizedBox(height: AppSizes.lg),
-
-                      // Description
-                      Text(
-                        'Description',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                      ),
-                      const SizedBox(height: AppSizes.sm),
-                      if (_isEditing)
-                        AppTextField(
-                          controller: _descriptionController,
-                          hint: 'Add description...',
-                          maxLines: 5,
-                        )
-                      else
-                        Text(
-                          t.description?.isNotEmpty == true
-                              ? t.description!
-                              : 'No description',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: t.description?.isNotEmpty != true
-                                        ? isDark
-                                            ? AppColors.textTertiaryDark
-                                            : AppColors.textTertiary
-                                        : null,
-                                  ),
-                        ),
-
-                      if (_isEditing) ...[
-                        const SizedBox(height: AppSizes.lg),
-                        Row(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () =>
-                                    setState(() => _isEditing = false),
-                                child: const Text('Cancel'),
-                              ),
-                            ),
-                            const SizedBox(width: AppSizes.md),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  // TODO: Save changes
-                                  setState(() => _isEditing = false);
-                                },
-                                child: const Text('Save'),
-                              ),
+                            const Icon(Iconsax.calendar_1,
+                                size: 16, color: Colors.grey),
+                            const SizedBox(width: 6),
+                            Text(
+                              DateFormat('dd/MM/yyyy HH:mm')
+                                  .format(task.dueDate!),
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
-                      ],
-
-                      const SizedBox(height: AppSizes.lg),
-                      const Divider(),
-                      const SizedBox(height: AppSizes.lg),
-
-                      // Comments Section
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Comments',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          comments.when(
-                            data: (list) => Text(
-                              '${list.length}',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                            loading: () => const SizedBox(),
-                            error: (_, __) => const SizedBox(),
-                          ),
-                        ],
                       ),
-                      const SizedBox(height: AppSizes.md),
-
-                      // Comments List
-                      comments.when(
-                        data: (commentList) {
-                          if (commentList.isEmpty) {
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: AppSizes.lg),
-                              child: Center(
-                                child: Text(
-                                  'No comments yet',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ),
-                            );
-                          }
-
-                          return Column(
-                            children: commentList.map((comment) {
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.only(bottom: AppSizes.md),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const UserAvatar(name: 'User', size: 36),
-                                    const SizedBox(width: AppSizes.sm),
-                                    Expanded(
-                                      child: Container(
-                                        padding:
-                                            const EdgeInsets.all(AppSizes.sm),
-                                        decoration: BoxDecoration(
-                                          color: isDark
-                                              ? AppColors.surfaceVariantDark
-                                              : AppColors.surfaceVariant,
-                                          borderRadius: BorderRadius.circular(
-                                            AppSizes.radiusMd,
-                                          ),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  'User',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .titleSmall
-                                                      ?.copyWith(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                ),
-                                                Text(
-                                                  comment.createdAt.relative,
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall,
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: AppSizes.xs),
-                                            Text(comment.content),
-                                            if (comment
-                                                .attachmentUrls.isNotEmpty) ...[
-                                              const SizedBox(
-                                                  height: AppSizes.sm),
-                                              Wrap(
-                                                spacing: 8,
-                                                children: comment.attachmentUrls
-                                                    .map((url) {
-                                                  return GestureDetector(
-                                                    onTap: () {
-                                                      showDialog(
-                                                        context: context,
-                                                        builder: (_) => Dialog(
-                                                          child: SizedBox(
-                                                            width:
-                                                                double.infinity,
-                                                            height: 400,
-                                                            child: Image.network(
-                                                                url,
-                                                                fit: BoxFit
-                                                                    .contain),
-                                                          ),
-                                                        ),
-                                                      );
-                                                    },
-                                                    child: SizedBox(
-                                                      width: 120,
-                                                      height: 120,
-                                                      child: ClipRRect(
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                                AppSizes
-                                                                    .radiusMd),
-                                                        child: Image.network(
-                                                            url,
-                                                            fit: BoxFit.cover,
-                                                            errorBuilder: (_,
-                                                                    __, ___) =>
-                                                                Icon(Icons
-                                                                    .attach_file)),
-                                                      ),
-                                                    ),
-                                                  );
-                                                }).toList(),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          );
-                        },
-                        loading: () => const Center(
-                          child: CircularProgressIndicator(),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color:
+                            _getPriorityColor(task.priority).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: _getPriorityColor(task.priority)
+                                .withOpacity(0.5)),
+                      ),
+                      child: Text(
+                        task.priority.name.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _getPriorityColor(task.priority),
+                          fontWeight: FontWeight.bold,
                         ),
-                        error: (error, _) => Text('Error: $error'),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Comment Input
-              Container(
-                padding: EdgeInsets.only(
-                  left: AppSizes.md,
-                  right: AppSizes.md,
-                  top: AppSizes.sm,
-                  bottom: MediaQuery.of(context).padding.bottom + AppSizes.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceDark : AppColors.surface,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, -5),
                     ),
                   ],
                 ),
-                child: Row(
+
+                const SizedBox(height: AppSizes.lg),
+
+                // 3. Mô tả
+                const Text('Mô tả',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _descController,
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    hintText: 'Thêm mô tả chi tiết...',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: Theme.of(context).cardColor,
+                  ),
+                  onChanged: (val) {
+                    _isEditing = true;
+                    setState(() {});
+                  },
+                ),
+
+                const SizedBox(height: AppSizes.md),
+
+                // Nút Lưu thay đổi (chỉ hiện khi có chỉnh sửa)
+                if (_isEditing)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => _updateTask(task),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('Lưu thay đổi',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+
+                const Divider(height: 40),
+
+                // 4. Bình luận (Comments)
+                const Text('Bình luận',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 12),
+
+                // Danh sách bình luận
+                commentsAsync.when(
+                  data: (comments) {
+                    if (comments.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(
+                            child: Text('Chưa có bình luận nào',
+                                style: TextStyle(color: Colors.grey))),
+                      );
+                    }
+                    return ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: comments.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final comment = comments[index];
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(12),
+                            border:
+                                Border.all(color: Colors.grey.withOpacity(0.1)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 12,
+                                    backgroundColor: Colors.blue.shade100,
+                                    child: const Icon(Icons.person,
+                                        size: 16, color: Colors.blue),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'User', // Tên người dùng (cần join bảng users nếu muốn hiện tên thật)
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    DateFormat('dd/MM HH:mm')
+                                        .format(comment.createdAt),
+                                    style: const TextStyle(
+                                        fontSize: 10, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(comment.content,
+                                  style: const TextStyle(fontSize: 14)),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, s) => Text('Lỗi tải bình luận: $e'),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Input bình luận
+                Row(
                   children: [
                     Expanded(
                       child: TextField(
                         controller: _commentController,
                         decoration: InputDecoration(
-                          hintText: AppStrings.addComment,
+                          hintText: 'Viết bình luận...',
+                          filled: true,
+                          fillColor: Theme.of(context).cardColor,
                           border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppSizes.radiusFull),
+                            borderRadius: BorderRadius.circular(24),
                             borderSide: BorderSide.none,
                           ),
-                          filled: true,
-                          fillColor: isDark
-                              ? AppColors.surfaceVariantDark
-                              : AppColors.surfaceVariant,
                           contentPadding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.md,
-                            vertical: AppSizes.sm,
-                          ),
+                              horizontal: 16, vertical: 12),
                         ),
                       ),
                     ),
-                    const SizedBox(width: AppSizes.sm),
+                    const SizedBox(width: 8),
                     IconButton.filled(
-                      onPressed: () async {
-                        if (_commentController.text.isEmpty) return;
-
-                        final user = ref.read(authStateProvider).valueOrNull;
-                        if (user == null) return;
-
-                        await ref
-                            .read(
-                                commentNotifierProvider(widget.taskId).notifier)
-                            .addComment(
-                              userId: user.id,
-                              content: _commentController.text,
-                            );
-
-                        _commentController.clear();
-                      },
-                      icon: const Icon(Iconsax.send_1),
+                      onPressed: () => _addComment(task.id),
+                      icon: const Icon(Iconsax.send_2),
+                      style: IconButton.styleFrom(
+                          backgroundColor: AppColors.primary),
                     ),
                   ],
                 ),
-              ),
-            ],
+
+                // Khoảng trắng dưới cùng để không bị che bởi bàn phím
+                const SizedBox(height: 40),
+              ],
+            ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-    Color? valueColor,
-    required bool isDark,
-    Widget? trailing,
-  }) {
-    return Row(
-      children: [
-        Icon(icon,
-            size: 16,
-            color:
-                isDark ? AppColors.textSecondaryDark : AppColors.textSecondary),
-        const SizedBox(width: AppSizes.sm),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(height: AppSizes.xs),
-              Text(value,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: valueColor)),
-            ],
-          ),
-        ),
-        if (trailing != null) trailing,
-      ],
-    );
-  }
-
-  Future<bool?> _showDeleteConfirmation(BuildContext context) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Task'),
-        content: const Text('Are you sure you want to delete this task?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
+        error: (e, s) => Center(child: Text('Lỗi: $e')),
       ),
     );
   }
@@ -590,39 +311,97 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   Color _getPriorityColor(TaskPriority priority) {
     switch (priority) {
       case TaskPriority.low:
-        return AppColors.priorityLow;
+        return Colors.green;
       case TaskPriority.medium:
-        return AppColors.priorityMedium;
+        return Colors.blue;
       case TaskPriority.high:
-        return AppColors.priorityHigh;
+        return Colors.orange;
       case TaskPriority.urgent:
-        return AppColors.priorityUrgent;
+        return Colors.red;
     }
   }
 
-  IconData _getPriorityIcon(TaskPriority priority) {
-    switch (priority) {
-      case TaskPriority.low:
-        return Iconsax.arrow_down;
-      case TaskPriority.medium:
-        return Iconsax.minus;
-      case TaskPriority.high:
-        return Iconsax.arrow_up;
-      case TaskPriority.urgent:
-        return Iconsax.danger;
+  Future<void> _updateTask(TaskModel task) async {
+    // Ẩn bàn phím
+    FocusScope.of(context).unfocus();
+
+    final updatedTask = task.copyWith(
+      title: _titleController.text.trim(),
+      description: _descController.text.trim(),
+      updatedAt: DateTime.now(),
+    );
+
+    try {
+      await ref.read(taskRepositoryProvider).updateTask(updatedTask);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Đã cập nhật công việc'),
+              backgroundColor: Colors.green),
+        );
+        setState(() => _isEditing = false);
+        // Làm mới dữ liệu
+        ref.invalidate(taskProvider(widget.taskId));
+        ref.invalidate(assignedTasksProvider);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Lỗi cập nhật: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
-  String _getPriorityLabel(TaskPriority priority) {
-    switch (priority) {
-      case TaskPriority.low:
-        return AppStrings.low;
-      case TaskPriority.medium:
-        return AppStrings.medium;
-      case TaskPriority.high:
-        return AppStrings.high;
-      case TaskPriority.urgent:
-        return AppStrings.urgent;
+  Future<void> _addComment(String taskId) async {
+    final content = _commentController.text.trim();
+    if (content.isEmpty) return;
+
+    // Ẩn bàn phím
+    FocusScope.of(context).unfocus();
+
+    // Gọi Provider tạo comment
+    await ref
+        .read(commentNotifierProvider(taskId).notifier)
+        .addComment(content);
+
+    if (mounted) {
+      _commentController.clear();
+      // Không cần invalidate vì stream sẽ tự update
+    }
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xóa công việc?'),
+        content: const Text('Hành động này không thể hoàn tác.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      // Gọi repository trực tiếp để xóa task
+      await ref.read(taskRepositoryProvider).deleteTask(widget.taskId);
+      if (mounted) {
+        context.pop(); // Quay lại màn hình trước
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Đã xóa công việc'), backgroundColor: Colors.green));
+        // Refresh danh sách ở các màn hình khác
+        ref.invalidate(assignedTasksProvider);
+      }
     }
   }
 }

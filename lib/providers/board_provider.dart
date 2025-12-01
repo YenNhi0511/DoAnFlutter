@@ -1,216 +1,158 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/models/board_model.dart';
 import '../data/models/board_column_model.dart';
-import '../data/repositories/board_repository.dart';
 
-// Repository Provider
+// --- REPOSITORY (Xử lý gọi Database) ---
+class BoardRepository {
+  final SupabaseClient _client;
+  BoardRepository(this._client);
+
+  // Lấy danh sách Bảng theo Dự án (Realtime)
+  Stream<List<BoardModel>> watchBoards(String projectId) {
+    return _client
+        .from('boards')
+        .stream(primaryKey: ['id'])
+        .eq('project_id', projectId)
+        .order('created_at')
+        .map((data) => data.map((json) => BoardModel.fromJson(json)).toList());
+  }
+
+  // Lấy danh sách Cột theo Bảng (Realtime)
+  Stream<List<BoardColumnModel>> watchColumns(String boardId) {
+    return _client
+        .from('board_columns')
+        .stream(primaryKey: ['id'])
+        .eq('board_id', boardId)
+        .order('position')
+        .map((data) =>
+            data.map((json) => BoardColumnModel.fromJson(json)).toList());
+  }
+
+  // Lấy chi tiết 1 Bảng
+  Future<BoardModel?> getBoard(String boardId) async {
+    try {
+      final data =
+          await _client.from('boards').select().eq('id', boardId).single();
+      return BoardModel.fromJson(data);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Tạo Bảng mới
+  Future<void> createBoard(String projectId, String name) async {
+    await _client.from('boards').insert({
+      'project_id': projectId,
+      'name': name,
+    });
+  }
+
+  // Xóa Bảng
+  Future<void> deleteBoard(String boardId) async {
+    await _client.from('boards').delete().eq('id', boardId);
+  }
+
+  // Tạo Cột mới
+  Future<void> createColumn(String boardId, String name, String color) async {
+    // Lấy position lớn nhất hiện tại để xếp cột mới vào cuối
+    final res = await _client
+        .from('board_columns')
+        .select('position')
+        .eq('board_id', boardId)
+        .order('position', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    final int newPos =
+        (res != null && res['position'] != null) ? res['position'] + 1 : 0;
+
+    await _client.from('board_columns').insert({
+      'board_id': boardId,
+      'name': name,
+      'color': color,
+      'position': newPos,
+    });
+  }
+}
+
+// --- PROVIDERS ---
+
+// 1. Repository Provider
 final boardRepositoryProvider = Provider<BoardRepository>((ref) {
-  return BoardRepositoryImpl();
+  return BoardRepository(Supabase.instance.client);
 });
 
-// Boards List Provider
-final boardsProvider = FutureProvider.family<List<BoardModel>, String>((ref, projectId) async {
-  final result = await ref.read(boardRepositoryProvider).getBoards(projectId);
-  return result.fold((l) => [], (r) => r);
+// 2. Stream Boards (Danh sách bảng trong Project Screen)
+final boardsStreamProvider =
+    StreamProvider.family<List<BoardModel>, String>((ref, projectId) {
+  return ref.watch(boardRepositoryProvider).watchBoards(projectId);
 });
 
-// Boards Stream Provider (Real-time)
-final boardsStreamProvider = StreamProvider.family<List<BoardModel>, String>((ref, projectId) {
-  return ref.read(boardRepositoryProvider).watchBoards(projectId);
+// 3. Stream Columns (Danh sách cột trong Board Screen - QUAN TRỌNG CHO LỖI CỦA BẠN)
+final columnsStreamProvider =
+    StreamProvider.family<List<BoardColumnModel>, String>((ref, boardId) {
+  return ref.watch(boardRepositoryProvider).watchColumns(boardId);
 });
 
-// Single Board Provider
-final boardProvider = FutureProvider.family<BoardModel?, String>((ref, boardId) async {
-  final result = await ref.read(boardRepositoryProvider).getBoard(boardId);
-  return result.fold((l) => null, (r) => r);
+// 4. Single Board Provider
+final boardProvider =
+    FutureProvider.family<BoardModel?, String>((ref, boardId) {
+  return ref.watch(boardRepositoryProvider).getBoard(boardId);
 });
 
-// Columns Provider
-final columnsProvider = FutureProvider.family<List<BoardColumnModel>, String>((ref, boardId) async {
-  final result = await ref.read(boardRepositoryProvider).getColumns(boardId);
-  return result.fold((l) => [], (r) => r);
-});
-
-// Columns Stream Provider (Real-time)
-final columnsStreamProvider = StreamProvider.family<List<BoardColumnModel>, String>((ref, boardId) {
-  return ref.read(boardRepositoryProvider).watchColumns(boardId);
-});
-
-// Selected Board Provider
-final selectedBoardProvider = StateProvider<BoardModel?>((ref) => null);
+// --- NOTIFIERS (Xử lý logic thêm/sửa/xóa) ---
 
 // Board Notifier
-class BoardNotifier extends StateNotifier<AsyncValue<List<BoardModel>>> {
-  final BoardRepository _repository;
+class BoardNotifier extends StateNotifier<AsyncValue<void>> {
+  final BoardRepository _repo;
   final String _projectId;
 
-  BoardNotifier(this._repository, this._projectId) : super(const AsyncValue.loading()) {
-    loadBoards();
+  BoardNotifier(this._repo, this._projectId)
+      : super(const AsyncValue.data(null));
+
+  Future<void> createBoard(String name) async {
+    try {
+      state = const AsyncValue.loading();
+      await _repo.createBoard(_projectId, name);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
   }
 
-  Future<void> loadBoards() async {
-    state = const AsyncValue.loading();
-    final result = await _repository.getBoards(_projectId);
-    state = result.fold(
-      (failure) => AsyncValue.error(failure.message, StackTrace.current),
-      (boards) => AsyncValue.data(boards),
-    );
-  }
-
-  Future<BoardModel?> createBoard(String name) async {
-    final existingBoards = state.valueOrNull ?? [];
-    final board = BoardModel(
-      id: '',
-      projectId: _projectId,
-      name: name,
-      position: existingBoards.length,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-
-    final result = await _repository.createBoard(board);
-    return result.fold(
-      (failure) => null,
-      (createdBoard) {
-        state.whenData((boards) {
-          state = AsyncValue.data([...boards, createdBoard]);
-        });
-        return createdBoard;
-      },
-    );
-  }
-
-  Future<bool> updateBoard(BoardModel board) async {
-    final result = await _repository.updateBoard(board);
-    return result.fold(
-      (failure) => false,
-      (updatedBoard) {
-        state.whenData((boards) {
-          final index = boards.indexWhere((b) => b.id == board.id);
-          if (index != -1) {
-            final updatedList = [...boards];
-            updatedList[index] = updatedBoard;
-            state = AsyncValue.data(updatedList);
-          }
-        });
-        return true;
-      },
-    );
-  }
-
-  Future<bool> deleteBoard(String boardId) async {
-    final result = await _repository.deleteBoard(boardId);
-    return result.fold(
-      (failure) => false,
-      (_) {
-        state.whenData((boards) {
-          state = AsyncValue.data(
-            boards.where((b) => b.id != boardId).toList(),
-          );
-        });
-        return true;
-      },
-    );
+  Future<void> deleteBoard(String boardId) async {
+    try {
+      await _repo.deleteBoard(boardId);
+    } catch (e) {
+      // Handle error silently or log it
+    }
   }
 }
 
 final boardNotifierProvider =
-    StateNotifierProvider.family<BoardNotifier, AsyncValue<List<BoardModel>>, String>(
-  (ref, projectId) {
-    return BoardNotifier(ref.watch(boardRepositoryProvider), projectId);
-  },
-);
+    StateNotifierProvider.family<BoardNotifier, AsyncValue<void>, String>(
+        (ref, projectId) {
+  return BoardNotifier(ref.watch(boardRepositoryProvider), projectId);
+});
 
-// Column Notifier
-class ColumnNotifier extends StateNotifier<AsyncValue<List<BoardColumnModel>>> {
-  final BoardRepository _repository;
+// Column Notifier (Logic tạo cột)
+class ColumnNotifier extends StateNotifier<AsyncValue<void>> {
+  final BoardRepository _repo;
   final String _boardId;
 
-  ColumnNotifier(this._repository, this._boardId) : super(const AsyncValue.loading()) {
-    loadColumns();
-  }
+  ColumnNotifier(this._repo, this._boardId)
+      : super(const AsyncValue.data(null));
 
-  Future<void> loadColumns() async {
-    state = const AsyncValue.loading();
-    final result = await _repository.getColumns(_boardId);
-    state = result.fold(
-      (failure) => AsyncValue.error(failure.message, StackTrace.current),
-      (columns) => AsyncValue.data(columns),
-    );
-  }
-
-  Future<BoardColumnModel?> createColumn({
-    required String name,
-    required String colorHex,
-    int? taskLimit,
-  }) async {
-    final existingColumns = state.valueOrNull ?? [];
-    final column = BoardColumnModel(
-      id: '',
-      boardId: _boardId,
-      name: name,
-      position: existingColumns.length,
-      colorHex: colorHex,
-      taskLimit: taskLimit,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-
-    final result = await _repository.createColumn(column);
-    return result.fold(
-      (failure) => null,
-      (createdColumn) {
-        state.whenData((columns) {
-          state = AsyncValue.data([...columns, createdColumn]);
-        });
-        return createdColumn;
-      },
-    );
-  }
-
-  Future<bool> updateColumn(BoardColumnModel column) async {
-    final result = await _repository.updateColumn(column);
-    return result.fold(
-      (failure) => false,
-      (updatedColumn) {
-        state.whenData((columns) {
-          final index = columns.indexWhere((c) => c.id == column.id);
-          if (index != -1) {
-            final updatedList = [...columns];
-            updatedList[index] = updatedColumn;
-            state = AsyncValue.data(updatedList);
-          }
-        });
-        return true;
-      },
-    );
-  }
-
-  Future<bool> deleteColumn(String columnId) async {
-    final result = await _repository.deleteColumn(columnId);
-    return result.fold(
-      (failure) => false,
-      (_) {
-        state.whenData((columns) {
-          state = AsyncValue.data(
-            columns.where((c) => c.id != columnId).toList(),
-          );
-        });
-        return true;
-      },
-    );
-  }
-
-  Future<void> reorderColumns(List<String> columnIds) async {
-    await _repository.reorderColumns(_boardId, columnIds);
-    await loadColumns();
+  Future<void> createColumn(
+      {required String name, required String colorHex}) async {
+    // Không try-catch ở đây để UI bắt lỗi và hiện SnackBar
+    await _repo.createColumn(_boardId, name, colorHex);
   }
 }
 
 final columnNotifierProvider =
-    StateNotifierProvider.family<ColumnNotifier, AsyncValue<List<BoardColumnModel>>, String>(
-  (ref, boardId) {
-    return ColumnNotifier(ref.watch(boardRepositoryProvider), boardId);
-  },
-);
-
+    StateNotifierProvider.family<ColumnNotifier, AsyncValue<void>, String>(
+        (ref, boardId) {
+  return ColumnNotifier(ref.watch(boardRepositoryProvider), boardId);
+});

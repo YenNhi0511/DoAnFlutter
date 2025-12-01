@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../data/models/project_model.dart';
 import '../../../../providers/project_provider.dart';
 import '../../../widgets/common/app_button.dart';
 import '../../../widgets/common/app_text_field.dart';
@@ -21,7 +22,7 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+
   String _selectedColor = '#1E3A5F';
   String _selectedIcon = 'folder';
   bool _isLoading = false;
@@ -58,29 +59,88 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
   Future<void> _createProject() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // 1. Ẩn bàn phím ngay lập tức để tránh lỗi layout
+    FocusScope.of(context).unfocus();
+
     setState(() => _isLoading = true);
 
-    final project = await ref.read(projectNotifierProvider.notifier).createProject(
-          name: _nameController.text.trim(),
-          description: _descriptionController.text.trim().isEmpty
-              ? null
-              : _descriptionController.text.trim(),
-          colorHex: _selectedColor,
-          iconName: _selectedIcon,
+    try {
+      // 2. Gọi Provider với đúng tên tham số như bạn đã cung cấp trong project_provider.dart
+      final ProjectModel? project =
+          await ref.read(projectNotifierProvider.notifier).createProject(
+                name: _nameController.text.trim(),
+                description: _descriptionController.text.trim().isEmpty
+                    ? null
+                    : _descriptionController.text.trim(),
+                colorHex: _selectedColor, // Khớp với provider
+                iconName: _selectedIcon, // Khớp với provider
+              );
+
+      if (project != null && mounted) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Iconsax.tick_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Đã tạo dự án "${project.name}" thành công!'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
 
-    setState(() => _isLoading = false);
+        // Close sheet and navigate
+        context.pop();
 
-    if (project != null && mounted) {
-      context.pop();
-      context.push('/project/${project.id}');
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to create project'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+        // Đợi một chút cho animation đóng sheet hoàn tất rồi mới chuyển trang
+        if (mounted) {
+          await Future.delayed(const Duration(milliseconds: 300));
+          // Chuyển đến trang chi tiết dự án vừa tạo
+          if (mounted) context.push('/project/${project.id}');
+        }
+      } else if (mounted) {
+        // Trường hợp trả về null (lỗi logic hoặc server)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Iconsax.danger, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Không thể tạo dự án. Vui lòng thử lại.'),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      // Bắt lỗi ngoại lệ (Exception)
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Iconsax.danger, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Lỗi: ${e.toString()}')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -97,13 +157,15 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
           top: Radius.circular(AppSizes.radiusXl),
         ),
       ),
+      // ĐÃ SỬA: Xóa mainAxisSize: MainAxisSize.min ở đây (Container không có thuộc tính này)
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSizes.lg),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize:
+                MainAxisSize.min, // ĐÃ SỬA: Đặt mainAxisSize ở Column mới đúng
             children: [
               // Handle
               Center(
@@ -118,9 +180,9 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: AppSizes.lg),
-              
+
               // Title
               Text(
                 AppStrings.createProject,
@@ -128,21 +190,22 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
                       fontWeight: FontWeight.bold,
                     ),
               ),
-              
+
               const SizedBox(height: AppSizes.lg),
-              
+
               // Project Name
               AppTextField(
                 label: AppStrings.projectName,
                 hint: 'Enter project name',
                 controller: _nameController,
                 prefixIcon: Iconsax.folder_2,
-                validator: (value) => Validators.required(value, 'Project name'),
+                validator: (value) =>
+                    Validators.required(value, 'Project name'),
                 autofocus: true,
               ),
-              
+
               const SizedBox(height: AppSizes.md),
-              
+
               // Description
               AppTextField(
                 label: AppStrings.projectDescription,
@@ -151,9 +214,9 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
                 maxLines: 3,
                 prefixIcon: Iconsax.document_text,
               ),
-              
+
               const SizedBox(height: AppSizes.lg),
-              
+
               // Color Selection
               Text(
                 AppStrings.projectColor,
@@ -171,7 +234,8 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: Color(int.parse(color.replaceFirst('#', '0xFF'))),
+                        color:
+                            Color(int.parse(color.replaceFirst('#', '0xFF'))),
                         shape: BoxShape.circle,
                         border: isSelected
                             ? Border.all(
@@ -181,15 +245,16 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
                             : null,
                       ),
                       child: isSelected
-                          ? const Icon(Icons.check, color: Colors.white, size: 20)
+                          ? const Icon(Icons.check,
+                              color: Colors.white, size: 20)
                           : null,
                     ),
                   );
                 }).toList(),
               ),
-              
+
               const SizedBox(height: AppSizes.lg),
-              
+
               // Icon Selection
               Text(
                 'Project Icon',
@@ -208,7 +273,8 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
                       height: 48,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? Color(int.parse(_selectedColor.replaceFirst('#', '0xFF')))
+                            ? Color(int.parse(
+                                    _selectedColor.replaceFirst('#', '0xFF')))
                                 .withOpacity(0.2)
                             : isDark
                                 ? AppColors.surfaceVariantDark
@@ -216,7 +282,8 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
                         borderRadius: BorderRadius.circular(AppSizes.radiusSm),
                         border: isSelected
                             ? Border.all(
-                                color: Color(int.parse(_selectedColor.replaceFirst('#', '0xFF'))),
+                                color: Color(int.parse(
+                                    _selectedColor.replaceFirst('#', '0xFF'))),
                                 width: 2,
                               )
                             : null,
@@ -224,7 +291,8 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
                       child: Icon(
                         item['icon'],
                         color: isSelected
-                            ? Color(int.parse(_selectedColor.replaceFirst('#', '0xFF')))
+                            ? Color(int.parse(
+                                _selectedColor.replaceFirst('#', '0xFF')))
                             : isDark
                                 ? AppColors.textSecondaryDark
                                 : AppColors.textSecondary,
@@ -233,9 +301,9 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
                   );
                 }).toList(),
               ),
-              
+
               const SizedBox(height: AppSizes.xl),
-              
+
               // Buttons
               Row(
                 children: [
@@ -256,7 +324,7 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: AppSizes.md),
             ],
           ),
@@ -265,4 +333,3 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
     );
   }
 }
-
